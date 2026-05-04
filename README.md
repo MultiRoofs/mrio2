@@ -1,0 +1,44 @@
+# mrio2
+
+Reads, modifies, and writes [CityJSON](https://www.cityjson.org/specs/2.0.2/) and [CityJSONSeq](https://www.cityjson.org/specs/2.0.2/#text-sequences-and-streaming-with-cityjsonfeature) files for the [MultiRoofs](https://github.com/MultiRoofs) project.
+
+## Build & run
+
+Requires [Rust](https://rustup.rs/) 1.81+.
+
+```sh
+cargo build --release
+cargo run -- data/3dbag_b2.city.json
+cargo run -- data/3dbag_b2.city.jsonl --output-format cityjson   # format conversion
+```
+
+## Usage
+
+- **Open a file**: `cargo run -- <file>`
+- **Operations**: select from the left panel with `↑↓`, press `Enter`
+- **Save**: press `s`, type output path, `f` toggles output format (CityJSON / CityJSONSeq)
+- **Quit**: `q` (confirms if unsaved)
+
+## Operations
+
+| Operation | What it does |
+|-----------|-------------|
+| Attribute: delete | Pick an attribute name from the list → removes it from all CityObjects |
+| Attribute: rename | Pick an attribute, type a new name → renames it everywhere |
+| Attributes: add from CSV | Load a CSV (first column = CityObject ID, headers = attribute names) and add those attributes to matching objects. Accepts `;` or `,` delimiters (auto-detected). |
+| Roofer → MultiRoofs | Merges all `BuildingPart` objects into their parent `Building`, removes lod=0 geometry, renames `b3_volume` → `+building-volume`, and adds the `multiroofs` extension to the file. |
+
+## Formats
+
+All operators accept CityJSON (`.json`) and CityJSONSeq (`.jsonl`) as input and output.
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| CityJSON | `.city.json` | Single JSON object with all CityObjects and vertices |
+| CityJSONSeq | `.city.jsonl` | Streaming format: header line + one CityJSONFeature per line |
+
+[CityJSON specification 2.0.2](https://www.cityjson.org/specs/2.0.2/)
+
+## License
+
+MIT
