@@ -447,7 +447,7 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
             frame.render_widget(text, dialog_area);
             // Cursor
             frame.set_cursor_position((
-                dialog_area.x + 2 + (*cursor as u16).min(input.len() as u16),
+                dialog_area.x + 3 + (*cursor as u16).min(input.len() as u16),
                 dialog_area.y + 1,
             ));
         }
@@ -469,7 +469,7 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
             .block(block);
             frame.render_widget(text, dialog_area);
             frame.set_cursor_position((
-                dialog_area.x + 2 + (*cursor as u16).min(input.len() as u16),
+                dialog_area.x + 3 + (*cursor as u16).min(input.len() as u16),
                 dialog_area.y + 1,
             ));
         }
@@ -497,7 +497,7 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
             .block(block);
             frame.render_widget(text, dialog_area);
             frame.set_cursor_position((
-                dialog_area.x + 6 + (*cursor as u16).min(input.len() as u16),
+                dialog_area.x + 7 + (*cursor as u16).min(input.len() as u16),
                 dialog_area.y + 1,
             ));
         }
