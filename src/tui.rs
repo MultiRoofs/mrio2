@@ -19,6 +19,7 @@ const OPERATION_NAMES: &[&str] = &[
     "Attribute: rename",
     "Attributes: add from CSV",
     "Roofer → MultiRoofs",
+    "Validate schema",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -659,6 +660,14 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         let report = ops::roofer2multiroofs(&mut app.doc);
                         app.modified = true;
                         app.refresh_stats();
+                        app.dialog = Some(Dialog::Message {
+                            text: report.summary,
+                            is_error: report.is_error,
+                        });
+                    }
+                    5 => {
+                        // Validate schema
+                        let report = ops::validate_schema(&app.doc);
                         app.dialog = Some(Dialog::Message {
                             text: report.summary,
                             is_error: report.is_error,

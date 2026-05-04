@@ -19,7 +19,7 @@ cargo run -- data/file.city.jsonl --output-format cityjson   # convert format
 | `src/main.rs` | CLI parsing (clap) |
 | `src/model.rs` | `CityJsonDocument`, `InputFormat`/`OutputFormat` |
 | `src/io.rs` | Read/write both formats, `collapse()`/`expand()` with vertex remapping |
-| `src/ops.rs` | `remove_attribute`, `rename_attribute`, `add_attributes_from_csv`, `roofer2multiroofs` |
+| `src/ops.rs` | `remove_attribute`, `rename_attribute`, `add_attributes_from_csv`, `roofer2multiroofs`, `validate_schema` |
 | `src/stats.rs` | File statistics computation |
 | `src/tui.rs` | ratatui app: operations panel, scrollable overview, dialogs |
 | `data/` | Example CityJSON/Seq files |

@@ -10,3 +10,4 @@ ratatui = "0.29"
 crossterm = "0.28"
 clap = { version = "4", features = ["derive"] }
 csv = "1"
+cjval = "0.9"

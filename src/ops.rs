@@ -391,6 +391,36 @@ mod tests {
     }
 }
 
+pub fn validate_schema(doc: &CityJsonDocument) -> OpReport {
+    let collapsed = crate::io::collapse(doc);
+    let json_str = serde_json::to_string_pretty(&collapsed).unwrap_or_default();
+    let validator = cjval::CJValidator::from_str(&json_str);
+    let results = validator.validate();
+
+    let mut lines: Vec<String> = Vec::new();
+    let mut has_errors = false;
+
+    for (criterion, val_sum) in results.iter() {
+        let icon = if val_sum.is_valid() { "✓" } else { "✗" };
+        let kind = if val_sum.is_warning() { "warning" } else { "error" };
+        lines.push(format!(" {} {} [{}]", icon, criterion, kind));
+        if val_sum.has_errors() {
+            for err in val_sum.get_errors() {
+                lines.push(format!("    {}", err));
+            }
+            if !val_sum.is_warning() {
+                has_errors = true;
+            }
+        }
+    }
+
+    OpReport {
+        summary: lines.join("\n"),
+        affected: 0,
+        is_error: has_errors,
+    }
+}
+
 fn parse_csv_value(s: &str) -> Value {
     let s = s.trim();
     if s.is_empty() {
