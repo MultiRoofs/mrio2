@@ -1,12 +1,12 @@
-use std::path::Path;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use ratatui::{
-    Frame,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    Frame,
 };
+use std::path::Path;
 
 use crate::io;
 use crate::model::{CityJsonDocument, OutputFormat};
@@ -15,9 +15,10 @@ use crate::stats::{compute_stats, FileStats};
 
 const OPERATION_NAMES: &[&str] = &[
     "File Info",
-    "Remove Attribute",
-    "Rename Attribute",
-    "Add Attributes from CSV",
+    "Attribute: delete",
+    "Attribute: rename",
+    "Attributes: add from CSV",
+    "Roofer → MultiRoofs",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -86,12 +87,7 @@ impl App {
         let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("output");
         let ext = self.output_format.extension();
         if let Some(parent) = p.parent() {
-            format!(
-                "{}/{}.modified.{}",
-                parent.display(),
-                stem,
-                ext
-            )
+            format!("{}/{}.modified.{}", parent.display(), stem, ext)
         } else {
             format!("{}.modified.{}", stem, ext)
         }
@@ -147,8 +143,12 @@ fn render(frame: &mut Frame, app: &mut App) {
     let area = frame.area();
 
     // Top title bar
-    let top_rect = Layout::vertical([Constraint::Length(1), Constraint::Min(0), Constraint::Length(1)])
-        .split(area);
+    let top_rect = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Min(0),
+        Constraint::Length(1),
+    ])
+    .split(area);
 
     render_title_bar(frame, top_rect[0], app);
 
@@ -171,18 +171,13 @@ fn render(frame: &mut Frame, app: &mut App) {
 fn render_title_bar(frame: &mut Frame, area: Rect, app: &App) {
     let fmt = app.output_format.label();
     let modified = if app.modified { " *" } else { "" };
-    let focus_indicator = match app.focus {
-        0 => "[1] Ops ",
-        _ => "[2] Overview ",
-    };
     let title = format!(
-        " mrio2 — {}{}  {} [{}]  (v{})",
+        " mrio2 — {}{}  [{}]  (v{})",
         Path::new(&app.input_path)
             .file_name()
             .and_then(|s| s.to_str())
             .unwrap_or(&app.input_path),
         modified,
-        focus_indicator,
         fmt,
         app.stats.version,
     );
@@ -201,14 +196,10 @@ fn render_bottom_bar(frame: &mut Frame, area: Rect, app: &App) {
     } else if app.focus == 0 {
         " [↑↓] nav ops  [Enter] select  [Tab] to overview  [s] save  [q] quit"
     } else {
-        " [↑↓] scroll overview  [Tab] to ops  [s] save  [q] quit"
+        " [↑↓] scroll overview  [PgUp/PgDn] jump  [Tab] to ops  [s] save  [q] quit"
     };
     let block = Block::default()
-        .style(
-            Style::default()
-                .fg(Color::White)
-                .bg(Color::DarkGray),
-        )
+        .style(Style::default().fg(Color::White).bg(Color::DarkGray))
         .borders(Borders::NONE);
     let text = Paragraph::new(Text::styled(help, Style::default().fg(Color::White)))
         .block(block)
@@ -221,6 +212,11 @@ fn render_left_panel(frame: &mut Frame, area: Rect, app: &App) {
         .title(" Operations ")
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded);
+    let block = if app.focus == 0 {
+        block.border_style(Style::default().fg(Color::Yellow))
+    } else {
+        block
+    };
 
     let items: Vec<ListItem> = OPERATION_NAMES
         .iter()
@@ -267,8 +263,19 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     let stats = &app.stats;
     let mut items: Vec<ListItem> = vec![];
 
-    macro_rules! bold { ($s:expr) => { Span::styled($s.to_string(), Style::default().add_modifier(Modifier::BOLD)) }; }
-    macro_rules! gray { ($s:expr) => { Span::styled($s.to_string(), Style::default().fg(Color::Gray)) }; }
+    macro_rules! bold {
+        ($s:expr) => {
+            Span::styled(
+                $s.to_string(),
+                Style::default().add_modifier(Modifier::BOLD),
+            )
+        };
+    }
+    macro_rules! gray {
+        ($s:expr) => {
+            Span::styled($s.to_string(), Style::default().fg(Color::Gray))
+        };
+    }
 
     // Format
     items.push(ListItem::new(Line::from(vec![
@@ -313,11 +320,17 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     if !stats.object_type_counts.is_empty() {
         items.push(ListItem::new(Line::from(bold!("Object types:"))));
         for (ty, count) in &stats.object_type_counts {
-            items.push(ListItem::new(Line::from(format!("  \u{2022} {}: {}", ty, count))));
+            items.push(ListItem::new(Line::from(format!(
+                "  \u{2022} {}: {}",
+                ty, count
+            ))));
         }
         if !stats.other_object_types.is_empty() {
             for (ty, count) in &stats.other_object_types {
-                items.push(ListItem::new(Line::from(format!("  \u{2022} {}: {}", ty, count))));
+                items.push(ListItem::new(Line::from(format!(
+                    "  \u{2022} {}: {}",
+                    ty, count
+                ))));
             }
         }
         items.push(ListItem::new(Line::from("")));
@@ -331,7 +344,7 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         )))));
         for (attr, count, sample) in &stats.attribute_inventory {
             let pct = if stats.total_objects > 0 {
-                (*count as f64 / stats.total_objects as f64 * 100.0) as usize
+                (*count as f64 / stats.objects_with_attrs.max(1) as f64 * 100.0) as usize
             } else {
                 0
             };
@@ -382,22 +395,13 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
                 .style(Style::default().fg(Color::Yellow));
             let items: Vec<ListItem> = attrs
                 .iter()
-                .enumerate()
-                .map(|(i, name)| {
-                    let style = if i == *selected {
-                        Style::default()
-                            .fg(Color::Black)
-                            .bg(Color::Yellow)
-                    } else {
-                        Style::default().fg(Color::White)
-                    };
-                    ListItem::new(format!("  {}", name)).style(style)
-                })
+                .map(|name| ListItem::new(format!("  {}", name)))
                 .collect();
+            let mut state = ratatui::widgets::ListState::default().with_selected(Some(*selected));
             let list = List::new(items)
                 .block(block)
-                .highlight_style(Style::default().bg(Color::Yellow));
-            frame.render_widget(list, dialog_area);
+                .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black));
+            frame.render_stateful_widget(list, dialog_area, &mut state);
         }
         Dialog::RenamePick { attrs, selected } => {
             let block = Block::default()
@@ -407,22 +411,13 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
                 .style(Style::default().fg(Color::Yellow));
             let items: Vec<ListItem> = attrs
                 .iter()
-                .enumerate()
-                .map(|(i, name)| {
-                    let style = if i == *selected {
-                        Style::default()
-                            .fg(Color::Black)
-                            .bg(Color::Yellow)
-                    } else {
-                        Style::default().fg(Color::White)
-                    };
-                    ListItem::new(format!("  {}", name)).style(style)
-                })
+                .map(|name| ListItem::new(format!("  {}", name)))
                 .collect();
+            let mut state = ratatui::widgets::ListState::default().with_selected(Some(*selected));
             let list = List::new(items)
                 .block(block)
-                .highlight_style(Style::default().bg(Color::Yellow));
-            frame.render_widget(list, dialog_area);
+                .highlight_style(Style::default().bg(Color::Yellow).fg(Color::Black));
+            frame.render_stateful_widget(list, dialog_area, &mut state);
         }
         Dialog::RenameInput {
             old_name,
@@ -473,7 +468,11 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
                 dialog_area.y + 1,
             ));
         }
-        Dialog::Save { input, cursor, format } => {
+        Dialog::Save {
+            input,
+            cursor,
+            format,
+        } => {
             let block = Block::default()
                 .title(" Save As ")
                 .borders(Borders::ALL)
@@ -487,10 +486,7 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
             };
             let text = Paragraph::new(Text::from(vec![
                 Line::from(format!("Path: {}", display)),
-                Line::from(Span::styled(
-                    fmt_str,
-                    Style::default().fg(Color::Cyan),
-                )),
+                Line::from(Span::styled(fmt_str, Style::default().fg(Color::Cyan))),
                 Line::from(" [f] toggle format"),
             ]))
             .block(block);
@@ -582,10 +578,20 @@ fn handle_events(app: &mut App) -> Result<(), String> {
             }
             KeyCode::Down | KeyCode::Char('j') => {
                 if app.focus == 0 {
-                    app.selected_operation = (app.selected_operation + 1)
-                        .min(OPERATION_NAMES.len() - 1);
+                    app.selected_operation =
+                        (app.selected_operation + 1).min(OPERATION_NAMES.len() - 1);
                 } else {
                     app.right_scroll = app.right_scroll.saturating_add(1);
+                }
+            }
+            KeyCode::PageDown => {
+                if app.focus == 1 {
+                    app.right_scroll = app.right_scroll.saturating_add(10);
+                }
+            }
+            KeyCode::PageUp => {
+                if app.focus == 1 {
+                    app.right_scroll = app.right_scroll.saturating_sub(10);
                 }
             }
             KeyCode::Enter => {
@@ -600,10 +606,7 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                                 is_error: true,
                             });
                         } else {
-                            app.dialog = Some(Dialog::RemoveAttr {
-                                attrs,
-                                selected: 0,
-                            });
+                            app.dialog = Some(Dialog::RemoveAttr { attrs, selected: 0 });
                         }
                     }
                     2 => {
@@ -615,10 +618,7 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                                 is_error: true,
                             });
                         } else {
-                            app.dialog = Some(Dialog::RenamePick {
-                                attrs,
-                                selected: 0,
-                            });
+                            app.dialog = Some(Dialog::RenamePick { attrs, selected: 0 });
                         }
                     }
                     3 => {
@@ -626,6 +626,16 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         app.dialog = Some(Dialog::AddCsv {
                             input: String::new(),
                             cursor: 0,
+                        });
+                    }
+                    4 => {
+                        // Roofer → MultiRoofs
+                        let report = ops::roofer2multiroofs(&mut app.doc);
+                        app.modified = true;
+                        app.refresh_stats();
+                        app.dialog = Some(Dialog::Message {
+                            text: report.summary,
+                            is_error: report.is_error,
                         });
                     }
                     _ => {}
@@ -653,7 +663,13 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
                 selected: new_sel,
             });
         }
-        (Dialog::RemoveAttr { ref attrs, selected }, KeyCode::Enter) => {
+        (
+            Dialog::RemoveAttr {
+                ref attrs,
+                selected,
+            },
+            KeyCode::Enter,
+        ) => {
             let name = attrs[selected].clone();
             let report = ops::remove_attribute(&mut app.doc, &name);
             app.modified = true;
@@ -681,7 +697,13 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
                 selected: new_sel,
             });
         }
-        (Dialog::RenamePick { ref attrs, selected }, KeyCode::Enter) => {
+        (
+            Dialog::RenamePick {
+                ref attrs,
+                selected,
+            },
+            KeyCode::Enter,
+        ) => {
             let old_name = attrs[selected].clone();
             app.dialog = Some(Dialog::RenameInput {
                 old_name,
@@ -735,10 +757,7 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             }
         }
         (Dialog::RenameInput { .. }, KeyCode::Left) => {
-            if let Some(Dialog::RenameInput {
-                ref mut cursor, ..
-            }) = app.dialog
-            {
+            if let Some(Dialog::RenameInput { ref mut cursor, .. }) = app.dialog {
                 *cursor = cursor.saturating_sub(1);
             }
         }
@@ -752,7 +771,14 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
                 *cursor = (*cursor + 1).min(input.len());
             }
         }
-        (Dialog::RenameInput { ref old_name, ref input, .. }, KeyCode::Enter) => {
+        (
+            Dialog::RenameInput {
+                ref old_name,
+                ref input,
+                ..
+            },
+            KeyCode::Enter,
+        ) => {
             if input.is_empty() {
                 app.dialog = Some(Dialog::Message {
                     text: "New name cannot be empty.".to_string(),
@@ -772,20 +798,26 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
         (Dialog::RenameInput { .. }, KeyCode::Esc) => {
             // Go back to pick list
             let attrs = collect_attribute_names(app);
-            app.dialog = Some(Dialog::RenamePick {
-                attrs,
-                selected: 0,
-            });
+            app.dialog = Some(Dialog::RenamePick { attrs, selected: 0 });
         }
 
         (Dialog::AddCsv { .. }, KeyCode::Char(c)) => {
             if c == 'f' || c == '\t' {
                 return Ok(());
             }
-            if c.is_ascii_graphic() || c == ' ' || c == '_' || c == '-' || c == '.' || c == '/' || c == '\\' || c == ':' {
+            if c.is_ascii_graphic()
+                || c == ' '
+                || c == '_'
+                || c == '-'
+                || c == '.'
+                || c == '/'
+                || c == '\\'
+                || c == ':'
+            {
                 if let Some(Dialog::AddCsv {
                     ref mut input,
                     ref mut cursor,
+                    ..
                 }) = app.dialog
                 {
                     input.insert(*cursor, c);
@@ -796,7 +828,7 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
         (Dialog::AddCsv { .. }, KeyCode::Backspace) => {
             if let Some(Dialog::AddCsv {
                 ref mut input,
-                ref mut cursor,
+                ref mut cursor, ..
             }) = app.dialog
             {
                 if *cursor > 0 {
@@ -808,7 +840,7 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
         (Dialog::AddCsv { .. }, KeyCode::Delete) => {
             if let Some(Dialog::AddCsv {
                 ref mut input,
-                ref mut cursor,
+                ref mut cursor, ..
             }) = app.dialog
             {
                 if *cursor < input.len() {
@@ -817,10 +849,7 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             }
         }
         (Dialog::AddCsv { .. }, KeyCode::Left) => {
-            if let Some(Dialog::AddCsv {
-                ref mut cursor, ..
-            }) = app.dialog
-            {
+            if let Some(Dialog::AddCsv { ref mut cursor, .. }) = app.dialog {
                 *cursor = cursor.saturating_sub(1);
             }
         }
@@ -878,18 +907,22 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
                 if let Some(Dialog::Save { format, input, .. }) = &mut app.dialog {
                     *format = new_format;
                     if input.ends_with(old_ext) {
-                        let new_input = format!(
-                            "{}.{}",
-                            input.trim_end_matches(old_ext),
-                            new_ext
-                        );
+                        let new_input = format!("{}.{}", input.trim_end_matches(old_ext), new_ext);
                         *input = new_input;
                     }
                 }
             }
         }
         (Dialog::Save { .. }, KeyCode::Char(c)) => {
-            if c.is_ascii_graphic() || c == ' ' || c == '_' || c == '-' || c == '.' || c == '/' || c == '\\' || c == ':' {
+            if c.is_ascii_graphic()
+                || c == ' '
+                || c == '_'
+                || c == '-'
+                || c == '.'
+                || c == '/'
+                || c == '\\'
+                || c == ':'
+            {
                 if let Some(Dialog::Save {
                     ref mut input,
                     ref mut cursor,
@@ -927,10 +960,7 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             }
         }
         (Dialog::Save { .. }, KeyCode::Left) => {
-            if let Some(Dialog::Save {
-                ref mut cursor, ..
-            }) = app.dialog
-            {
+            if let Some(Dialog::Save { ref mut cursor, .. }) = app.dialog {
                 *cursor = cursor.saturating_sub(1);
             }
         }
@@ -944,7 +974,12 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
                 *cursor = (*cursor + 1).min(input.len());
             }
         }
-        (Dialog::Save { ref input, format, .. }, KeyCode::Enter) => {
+        (
+            Dialog::Save {
+                ref input, format, ..
+            },
+            KeyCode::Enter,
+        ) => {
             if input.is_empty() {
                 app.dialog = Some(Dialog::Message {
                     text: "Path cannot be empty.".to_string(),

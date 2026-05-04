@@ -8,6 +8,7 @@ pub struct FileStats {
     pub format_name: String,
     pub version: String,
     pub total_objects: usize,
+    pub objects_with_attrs: usize,
     pub total_vertices: usize,
     pub object_type_counts: BTreeMap<String, usize>,
     pub other_object_types: BTreeMap<String, usize>,
@@ -68,6 +69,7 @@ pub fn compute_stats(doc: &CityJsonDocument) -> FileStats {
     let mut attr_counts: HashMap<String, usize> = HashMap::new();
     let mut attr_samples: HashMap<String, String> = HashMap::new();
     let mut total_objects = 0;
+    let mut objects_with_attrs = 0;
 
     for (_id, obj) in io::get_all_city_objects(doc) {
         total_objects += 1;
@@ -77,6 +79,7 @@ pub fn compute_stats(doc: &CityJsonDocument) -> FileStats {
         }
 
         if let Some(attrs) = obj.get("attributes").and_then(|v| v.as_object()) {
+            objects_with_attrs += 1;
             for (key, val) in attrs {
                 attr_counts.entry(key.clone()).and_modify(|c| *c += 1).or_insert(1);
                 attr_samples.entry(key.clone()).or_insert_with(|| fmt_value(val));
@@ -103,7 +106,7 @@ pub fn compute_stats(doc: &CityJsonDocument) -> FileStats {
             (k, c, sample)
         })
         .collect();
-    attribute_inventory.sort_by(|a, b| b.1.cmp(&a.1));
+    attribute_inventory.sort_by(|a, b| a.0.cmp(&b.0));
 
     let extensions: Vec<String> = doc
         .header
@@ -125,6 +128,7 @@ pub fn compute_stats(doc: &CityJsonDocument) -> FileStats {
         format_name: format_name.to_string(),
         version,
         total_objects,
+        objects_with_attrs,
         total_vertices,
         object_type_counts,
         other_object_types,
