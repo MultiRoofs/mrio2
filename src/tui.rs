@@ -750,8 +750,8 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             app.dialog = None;
         }
 
-        (Dialog::RenameInput { old_name: _, .. }, KeyCode::Char(c)) => {
-            if c == 'f' || c == '\t' {
+        (Dialog::RenameInput { .. }, KeyCode::Char(c)) => {
+            if c == '\t' {
                 return Ok(());
             }
             if c.is_ascii_graphic() || c == ' ' || c == '_' || c == '-' {

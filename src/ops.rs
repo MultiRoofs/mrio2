@@ -196,6 +196,40 @@ pub fn roofer2multiroofs(doc: &mut CityJsonDocument) -> OpReport {
         doc.features.clear();
     }
 
+    // Extract transform and vertices before the mutable borrow of header
+    let scale: [f64; 3] = doc
+        .header
+        .get("transform")
+        .and_then(|t| t.as_object())
+        .and_then(|t| t.get("scale"))
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            let s0 = a.first().and_then(|v| v.as_f64()).unwrap_or(1.0);
+            let s1 = a.get(1).and_then(|v| v.as_f64()).unwrap_or(1.0);
+            let s2 = a.get(2).and_then(|v| v.as_f64()).unwrap_or(1.0);
+            [s0, s1, s2]
+        })
+        .unwrap_or([1.0, 1.0, 1.0]);
+    let translate: [f64; 3] = doc
+        .header
+        .get("transform")
+        .and_then(|t| t.as_object())
+        .and_then(|t| t.get("translate"))
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            let t0 = a.first().and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let t1 = a.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let t2 = a.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0);
+            [t0, t1, t2]
+        })
+        .unwrap_or([0.0, 0.0, 0.0]);
+    let vertices_arr: Vec<Value> = doc
+        .header
+        .get("vertices")
+        .and_then(|v| v.as_array())
+        .map(|a| a.clone())
+        .unwrap_or_default();
+
     let city_objects = doc
         .header
         .get_mut("CityObjects")
@@ -281,7 +315,31 @@ pub fn roofer2multiroofs(doc: &mut CityJsonDocument) -> OpReport {
         city_objects.remove(id);
     }
 
-    // Step 5: rename b3_volume → +building-volume
+    // Step 5: compute roof area for remaining objects (now with merged geometries)
+    for (_id, obj) in city_objects.iter_mut() {
+        let roof_area = compute_roof_area(obj, &vertices_arr, &scale, &translate);
+        if roof_area > 0.0 {
+            let attrs = obj
+                .get_mut("attributes")
+                .and_then(|v| v.as_object_mut());
+            if let Some(attrs) = attrs {
+                attrs.insert(
+                    "+roof-total-area".to_string(),
+                    serde_json::json!((roof_area * 1000.0).round() / 1000.0),
+                );
+            } else {
+                let mut new_attrs = Map::new();
+                new_attrs.insert(
+                    "+roof-total-area".to_string(),
+                    serde_json::json!((roof_area * 1000.0).round() / 1000.0),
+                );
+                obj.as_object_mut()
+                    .map(|m| m.insert("attributes".to_string(), Value::Object(new_attrs)));
+            }
+        }
+    }
+
+    // Step 6: rename b3_volume → +building-volume
     let mut rename_count = 0;
     for (_id, obj) in city_objects.iter_mut() {
         if let Some(attrs) = obj.get_mut("attributes").and_then(|v| v.as_object_mut()) {
@@ -311,7 +369,7 @@ pub fn roofer2multiroofs(doc: &mut CityJsonDocument) -> OpReport {
     }
 
     let summary = format!(
-        "Roofer→MultiRoofs: merged {} BuildingPart(s), removed lod=0 geometry, renamed {} attribute(s), added extension",
+        "Roofer→MultiRoofs: merged {} BuildingPart(s), removed lod=0 geometry, renamed {} attribute(s), added +roof-total-area, added extension",
         part_ids.len(),
         rename_count,
     );
@@ -321,6 +379,150 @@ pub fn roofer2multiroofs(doc: &mut CityJsonDocument) -> OpReport {
         affected: part_ids.len(),
         is_error: part_ids.is_empty(),
     }
+}
+
+/// Compute the total area of all surfaces labelled RoofSurface in a CityObject's geometries.
+fn compute_roof_area(obj: &Value, vertices: &[Value], scale: &[f64; 3], translate: &[f64; 3]) -> f64 {
+    let geoms = match obj.get("geometry").and_then(|v| v.as_array()) {
+        Some(g) => g,
+        None => return 0.0,
+    };
+    let mut total = 0.0;
+    for geom in geoms {
+        let geom_type = geom.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        let semantics = match geom.get("semantics").and_then(|v| v.as_object()) {
+            Some(s) => s,
+            None => continue,
+        };
+        let surfaces = match semantics.get("surfaces").and_then(|v| v.as_array()) {
+            Some(s) => s,
+            None => continue,
+        };
+        let values = match semantics.get("values").and_then(|v| v.as_array()) {
+            Some(v) => v,
+            None => continue,
+        };
+        let boundaries = match geom.get("boundaries").and_then(|v| v.as_array()) {
+            Some(b) => b,
+            None => continue,
+        };
+
+        // Identify which surface indices are RoofSurface
+        let roof_surface_indices: Vec<usize> = surfaces
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.get("type").and_then(|t| t.as_str()) == Some("RoofSurface"))
+            .map(|(i, _)| i)
+            .collect();
+
+        if roof_surface_indices.is_empty() {
+            continue;
+        }
+
+        match geom_type {
+            "Solid" | "MultiSurface" | "CompositeSurface" => {
+                // For Solid: boundaries[shell][face][ring][v]
+                // For MultiSurface/CompositeSurface: boundaries[face][ring][v]
+                // values: for Solid = [shell: [face_val, ...]], for MultiSurface = [face_val, ...]
+
+                let num_shells = if geom_type == "Solid" {
+                    boundaries.len()
+                } else {
+                    1
+                };
+
+                for shell_idx in 0..num_shells {
+                    let faces = if geom_type == "Solid" {
+                        match boundaries[shell_idx].as_array() {
+                            Some(f) => f.clone(),
+                            None => continue,
+                        }
+                    } else {
+                        // MultiSurface: treat entire boundaries as one shell of faces
+                        // We use the boundaries directly
+                        let all_faces: Vec<Value> = boundaries.iter().cloned().collect();
+                        all_faces
+                    };
+
+                    // Get the values array for this shell
+                    let shell_values: Vec<Value> = if geom_type == "Solid" {
+                        match values.get(shell_idx).and_then(|v| v.as_array()) {
+                            Some(arr) => arr.to_vec(),
+                            None => vec![],
+                        }
+                    } else {
+                        values.to_vec()
+                    };
+
+                    for (face_idx, face) in faces.iter().enumerate() {
+                        let sem_idx = match shell_values.get(face_idx) {
+                            Some(v) => v.as_i64().unwrap_or(-1) as usize,
+                            None => continue,
+                        };
+                        if !roof_surface_indices.contains(&sem_idx) {
+                            continue;
+                        }
+
+                        let rings = match face.as_array() {
+                            Some(r) => r,
+                            None => continue,
+                        };
+                        if rings.is_empty() {
+                            continue;
+                        }
+
+                        // Outer ring is first, inner rings are the rest
+                        let outer_indices: Vec<usize> = match rings[0].as_array() {
+                            Some(arr) => arr.iter().filter_map(|v| v.as_i64().map(|n| n as usize)).collect(),
+                            None => continue,
+                        };
+                        let outer_area = ring_area_3d(&outer_indices, vertices, scale, translate);
+
+                        let mut inner_area = 0.0;
+                        for ring_idx in 1..rings.len() {
+                            if let Some(arr) = rings[ring_idx].as_array() {
+                                let indices: Vec<usize> = arr.iter().filter_map(|v| v.as_i64().map(|n| n as usize)).collect();
+                                inner_area += ring_area_3d(&indices, vertices, scale, translate);
+                            }
+                        }
+
+                        total += (outer_area - inner_area).abs();
+                    }
+                }
+            }
+            _ => {} // MultiPoint, MultiLineString, etc. have no roof semantics
+        }
+    }
+    total
+}
+
+/// Compute the area of a 3D polygon ring using the cross-product formula.
+fn ring_area_3d(indices: &[usize], vertices: &[Value], scale: &[f64; 3], translate: &[f64; 3]) -> f64 {
+    if indices.len() < 3 {
+        return 0.0;
+    }
+    let mut pts: Vec<[f64; 3]> = Vec::with_capacity(indices.len());
+    for &idx in indices {
+        if let Some(v) = vertices.get(idx).and_then(|v| v.as_array()) {
+            let x = v.get(0).and_then(|n| n.as_f64()).unwrap_or(0.0) * scale[0] + translate[0];
+            let y = v.get(1).and_then(|n| n.as_f64()).unwrap_or(0.0) * scale[1] + translate[1];
+            let z = v.get(2).and_then(|n| n.as_f64()).unwrap_or(0.0) * scale[2] + translate[2];
+            pts.push([x, y, z]);
+        }
+    }
+    if pts.len() < 3 {
+        return 0.0;
+    }
+    let mut cx = 0.0;
+    let mut cy = 0.0;
+    let mut cz = 0.0;
+    for i in 0..pts.len() {
+        let j = (i + 1) % pts.len();
+        cx += pts[i][1] * pts[j][2] - pts[i][2] * pts[j][1];
+        cy += pts[i][2] * pts[j][0] - pts[i][0] * pts[j][2];
+        cz += pts[i][0] * pts[j][1] - pts[i][1] * pts[j][0];
+    }
+    0.5 * (cx * cx + cy * cy + cz * cz).sqrt()
 }
 
 #[cfg(test)]

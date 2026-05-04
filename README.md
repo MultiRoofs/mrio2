@@ -30,7 +30,7 @@ cargo run -- data/3dbag_b2.city.jsonl --output-format cityjson   # format conver
 | Attribute: delete | Pick an attribute name from the list → removes it from all CityObjects |
 | Attribute: rename | Pick an attribute, type a new name → renames it everywhere |
 | Attributes: add from CSV | Load a CSV (first column = CityObject ID, headers = attribute names) and add those attributes to matching objects. Accepts `;` or `,` delimiters (auto-detected). |
-| Roofer → MultiRoofs | Merges all `BuildingPart` objects into their parent `Building`, removes lod=0 geometry, renames `b3_volume` → `+building-volume`, and adds the `multiroofs` extension to the file. |
+| Roofer → MultiRoofs | Merges all `BuildingPart` objects into their parent `Building`, removes lod=0 geometry, renames `b3_volume` → `+building-volume`, computes total roof surface area → `+roof-total-area`, and adds the `multiroofs` extension. |
 | Validate schema | Runs `cjval` against the file and reports schema errors, extension issues, parent-child consistency, vertex index validity, and other CityJSON compliance checks. |
 
 ## Formats
