@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::Path;
 use serde_json::{Map, Value};
 
@@ -596,11 +597,42 @@ mod tests {
 pub fn validate_schema(doc: &CityJsonDocument) -> OpReport {
     let collapsed = crate::io::collapse(doc);
     let json_str = serde_json::to_string_pretty(&collapsed).unwrap_or_default();
-    let validator = cjval::CJValidator::from_str(&json_str);
-    let results = validator.validate();
-
+    let mut validator = cjval::CJValidator::from_str(&json_str);
     let mut lines: Vec<String> = Vec::new();
     let mut has_errors = false;
+
+    // Load extension schemas so +-prefixed items can be validated
+    if let Some(exts) = doc.header.get("extensions").and_then(|v| v.as_object()) {
+        for (_name, ext_info) in exts.iter() {
+            if let Some(url) = ext_info.get("url").and_then(|v| v.as_str()) {
+                let resp = ureq::get(url).call();
+                match resp {
+                    Ok(response) => {
+                        let mut reader = response.into_body().into_reader();
+                        let mut body = String::new();
+                        let _ = reader.read_to_string(&mut body);
+                        match validator.add_one_extension_from_str(&body) {
+                            Ok(()) => {}
+                            Err(e) => {
+                                lines.push(format!(
+                                    " ! extension '{}' schema parse error: {}",
+                                    _name, e
+                                ));
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        lines.push(format!(
+                            " ! extension '{}' not fetched ({}), skip ext validation",
+                            _name, e
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    let results = validator.validate();
 
     for (criterion, val_sum) in results.iter() {
         let icon = if val_sum.is_valid() { "✓" } else { "✗" };
