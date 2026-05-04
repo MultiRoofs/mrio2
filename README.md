@@ -12,6 +12,10 @@ cargo run -- data/3dbag_b2.city.json
 cargo run -- data/3dbag_b2.city.jsonl --output-format cityjson   # format conversion
 ```
 
+## TUI
+
+![](./misc/tui.png)
+
 ## Usage
 
 - **Open a file**: `cargo run -- <file>`
