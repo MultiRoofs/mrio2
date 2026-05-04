@@ -50,6 +50,10 @@ enum Dialog {
         is_error: bool,
     },
     ConfirmQuit,
+    ConfirmOverwrite {
+        path: String,
+        format: OutputFormat,
+    },
 }
 
 pub struct App {
@@ -495,6 +499,28 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
                 dialog_area.x + 6 + (*cursor as u16).min(input.len() as u16),
                 dialog_area.y + 1,
             ));
+        }
+        Dialog::ConfirmOverwrite {
+            ref path, format: _,
+        } => {
+            let block = Block::default()
+                .title(" File Exists ")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .style(Style::default().fg(Color::Red));
+            let text = Text::from(vec![
+                Line::from(format!("'{}'", path)),
+                Line::from("already exists. Overwrite?"),
+                Line::from(""),
+                Line::from(Span::styled(
+                    "[Enter] overwrite   [Esc] cancel",
+                    Style::default().fg(Color::Gray),
+                )),
+            ]);
+            let paragraph = Paragraph::new(text)
+                .block(block)
+                .alignment(Alignment::Center);
+            frame.render_widget(paragraph, dialog_area);
         }
         Dialog::ConfirmQuit => {
             let block = Block::default()
@@ -985,6 +1011,11 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
                     text: "Path cannot be empty.".to_string(),
                     is_error: true,
                 });
+            } else if std::path::Path::new(input).exists() {
+                app.dialog = Some(Dialog::ConfirmOverwrite {
+                    path: input.clone(),
+                    format,
+                });
             } else {
                 match io::write_file(input, &app.doc, format) {
                     Ok(()) => {
@@ -1004,6 +1035,27 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             }
         }
         (Dialog::Save { .. }, KeyCode::Esc) => {
+            app.dialog = None;
+        }
+
+        (Dialog::ConfirmOverwrite { ref path, format }, KeyCode::Enter) => {
+            match io::write_file(path, &app.doc, format) {
+                Ok(()) => {
+                    app.modified = false;
+                    app.dialog = Some(Dialog::Message {
+                        text: format!("Saved to '{}'", path),
+                        is_error: false,
+                    });
+                }
+                Err(e) => {
+                    app.dialog = Some(Dialog::Message {
+                        text: format!("Save failed: {}", e),
+                        is_error: true,
+                    });
+                }
+            }
+        }
+        (Dialog::ConfirmOverwrite { .. }, KeyCode::Esc) => {
             app.dialog = None;
         }
 
