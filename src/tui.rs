@@ -18,6 +18,7 @@ const OPERATION_NAMES: &[&str] = &[
     "Attribute: delete",
     "Attribute: rename",
     "Attributes: add from CSV",
+    "CRS: set EPSG",
     "Roofer → MultiRoofs",
     "Validate schema",
 ];
@@ -54,6 +55,10 @@ enum Dialog {
     ConfirmOverwrite {
         path: String,
         format: OutputFormat,
+    },
+    EpsgInput {
+        input: String,
+        cursor: usize,
     },
 }
 
@@ -362,7 +367,11 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         items.push(ListItem::new(Line::from("")));
     }
 
-    let scroll = app.right_scroll.min(items.len().saturating_sub(1));
+    let max_scroll = items.len().saturating_sub(1);
+    if app.right_scroll > max_scroll {
+        app.right_scroll = max_scroll;
+    }
+    let scroll = app.right_scroll;
     let mut list_state = ratatui::widgets::ListState::default().with_selected(Some(scroll));
     let list = List::new(items)
         .block(block)
@@ -523,6 +532,28 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
                 .alignment(Alignment::Center);
             frame.render_widget(paragraph, dialog_area);
         }
+        Dialog::EpsgInput { input, cursor } => {
+            let block = Block::default()
+                .title(" Set EPSG Code ")
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .style(Style::default().fg(Color::Yellow));
+            let display = if input.is_empty() {
+                " (type EPSG code and press Enter, e.g. 28992)".to_string()
+            } else {
+                input.clone()
+            };
+            let text = Paragraph::new(Text::styled(
+                format!("> {}", display),
+                Style::default().fg(Color::White),
+            ))
+            .block(block);
+            frame.render_widget(text, dialog_area);
+            frame.set_cursor_position((
+                dialog_area.x + 3 + (*cursor as u16).min(input.len() as u16),
+                dialog_area.y + 1,
+            ));
+        }
         Dialog::ConfirmQuit => {
             let block = Block::default()
                 .title(" Quit? ")
@@ -656,6 +687,13 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         });
                     }
                     4 => {
+                        // CRS: set EPSG
+                        app.dialog = Some(Dialog::EpsgInput {
+                            input: String::new(),
+                            cursor: 0,
+                        });
+                    }
+                    5 => {
                         // Roofer → MultiRoofs
                         let report = ops::roofer2multiroofs(&mut app.doc);
                         app.modified = true;
@@ -665,7 +703,7 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                             is_error: report.is_error,
                         });
                     }
-                    5 => {
+                    6 => {
                         // Validate schema
                         let report = ops::validate_schema(&app.doc);
                         app.dialog = Some(Dialog::Message {
@@ -1044,6 +1082,83 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             }
         }
         (Dialog::Save { .. }, KeyCode::Esc) => {
+            app.dialog = None;
+        }
+
+        (Dialog::EpsgInput { .. }, KeyCode::Char(c)) => {
+            if c == '\t' {
+                return Ok(());
+            }
+            if c.is_ascii_digit() {
+                if let Some(Dialog::EpsgInput {
+                    ref mut input,
+                    ref mut cursor,
+                }) = app.dialog
+                {
+                    input.insert(*cursor, c);
+                    *cursor += 1;
+                }
+            }
+        }
+        (Dialog::EpsgInput { .. }, KeyCode::Backspace) => {
+            if let Some(Dialog::EpsgInput {
+                ref mut input,
+                ref mut cursor,
+            }) = app.dialog
+            {
+                if *cursor > 0 {
+                    *cursor -= 1;
+                    input.remove(*cursor);
+                }
+            }
+        }
+        (Dialog::EpsgInput { .. }, KeyCode::Delete) => {
+            if let Some(Dialog::EpsgInput {
+                ref mut input,
+                ref mut cursor,
+            }) = app.dialog
+            {
+                if *cursor < input.len() {
+                    input.remove(*cursor);
+                }
+            }
+        }
+        (Dialog::EpsgInput { .. }, KeyCode::Left) => {
+            if let Some(Dialog::EpsgInput {
+                ref mut cursor, ..
+            }) = app.dialog
+            {
+                *cursor = cursor.saturating_sub(1);
+            }
+        }
+        (Dialog::EpsgInput { .. }, KeyCode::Right) => {
+            if let Some(Dialog::EpsgInput {
+                ref mut input,
+                ref mut cursor,
+                ..
+            }) = app.dialog
+            {
+                *cursor = (*cursor + 1).min(input.len());
+            }
+        }
+        (Dialog::EpsgInput { ref input, .. }, KeyCode::Enter) => {
+            if input.is_empty() {
+                app.dialog = Some(Dialog::Message {
+                    text: "EPSG code cannot be empty.".to_string(),
+                    is_error: true,
+                });
+            } else {
+                let epsg = input.clone();
+                let report = ops::set_crs(&mut app.doc, &epsg);
+                app.modified = true;
+                app.refresh_stats();
+                app.dialog = Some(Dialog::Message {
+                    text: report.summary,
+                    is_error: report.is_error,
+                });
+            }
+        }
+        (Dialog::EpsgInput { .. }, KeyCode::Esc) => {
             app.dialog = None;
         }
 

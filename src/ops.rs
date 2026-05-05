@@ -655,6 +655,38 @@ pub fn validate_schema(doc: &CityJsonDocument) -> OpReport {
     }
 }
 
+pub fn set_crs(doc: &mut CityJsonDocument, epsg: &str) -> OpReport {
+    let epsg = epsg.trim();
+    if epsg.is_empty() || !epsg.chars().all(|c| c.is_ascii_digit()) {
+        return OpReport {
+            summary: format!("Invalid EPSG code: '{}'", epsg),
+            affected: 0,
+            is_error: true,
+        };
+    }
+    let url = format!("https://www.opengis.net/def/crs/EPSG/0/{}", epsg);
+    let metadata = doc
+        .header
+        .get_mut("metadata")
+        .and_then(|v| v.as_object_mut());
+    match metadata {
+        Some(m) => {
+            m.insert("referenceSystem".to_string(), Value::String(url));
+        }
+        None => {
+            let mut m = Map::new();
+            m.insert("referenceSystem".to_string(), Value::String(url));
+            doc.header
+                .insert("metadata".to_string(), Value::Object(m));
+        }
+    }
+    OpReport {
+        summary: format!("CRS set to EPSG:{}", epsg),
+        affected: 1,
+        is_error: false,
+    }
+}
+
 fn parse_csv_value(s: &str) -> Value {
     let s = s.trim();
     if s.is_empty() {
