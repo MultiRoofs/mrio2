@@ -8,7 +8,10 @@ use clap::Parser;
 use model::OutputFormat;
 
 #[derive(Parser)]
-#[command(name = "mrio2", about = "CityJSON editor — view and modify CityJSON files")]
+#[command(
+    name = "mrio2",
+    about = "Editor to prepare CityJSON files for the MultiRoofs project"
+)]
 struct Cli {
     /// Input file (.city.json or .city.jsonl)
     input: String,

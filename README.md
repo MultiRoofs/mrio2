@@ -1,6 +1,6 @@
 # mrio2
 
-Reads, modifies, and writes [CityJSON](https://www.cityjson.org/specs/2.0.2/) and [CityJSONSeq](https://www.cityjson.org/specs/2.0.2/#text-sequences-and-streaming-with-cityjsonfeature) files for the [MultiRoofs](https://github.com/MultiRoofs) project.
+Reads, modifies, and writes [CityJSON](https://www.cityjson.org/specs/2.0.2/) and [CityJSONSeq](https://www.cityjson.org/specs/2.0.2/#text-sequences-and-streaming-with-cityjsonfeature) files for the [MultiRoofs](https://github.com/multiroofs) project.
 
 ## Build & run
 
