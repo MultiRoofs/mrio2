@@ -14,13 +14,14 @@ use crate::ops;
 use crate::stats::{compute_stats, FileStats};
 
 const OPERATION_NAMES: &[&str] = &[
-    "File Info",
+    "Attribute: add roof area",
     "Attribute: delete",
     "Attribute: rename",
     "Attributes: add from CSV",
     "CRS: set EPSG",
     "Roofer → MultiRoofs",
     "Validate schema",
+    "Save",
 ];
 
 #[derive(Debug, Clone, PartialEq)]
@@ -50,6 +51,11 @@ enum Dialog {
     Message {
         text: String,
         is_error: bool,
+    },
+    Validation {
+        text: String,
+        has_errors: bool,
+        has_warnings: bool,
     },
     ConfirmQuit,
     ConfirmOverwrite {
@@ -309,8 +315,12 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
             "Extensions ({}):",
             stats.extensions.len()
         )))));
-        for ext in &stats.extensions {
-            items.push(ListItem::new(Line::from(format!("  \u{2022} {}", ext))));
+        for (name, url) in &stats.extensions {
+            items.push(ListItem::new(Line::from(format!("  \u{2022} {}", name))));
+            items.push(ListItem::new(Line::from(vec![
+                gray!("    "),
+                Span::raw(url),
+            ])));
         }
     }
     items.push(ListItem::new(Line::from("")));
@@ -588,6 +598,31 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
             .wrap(Wrap { trim: false });
             frame.render_widget(paragraph, dialog_area);
         }
+        Dialog::Validation {
+            text,
+            has_errors,
+            has_warnings,
+        } => {
+            let (title, color) = if *has_errors {
+                (" Validation — Errors ", Color::Red)
+            } else if *has_warnings {
+                (" Validation — Warnings ", Color::Yellow)
+            } else {
+                (" Validation — OK ", Color::Green)
+            };
+            let block = Block::default()
+                .title(title)
+                .borders(Borders::ALL)
+                .border_type(BorderType::Double)
+                .style(Style::default().fg(color));
+            let paragraph = Paragraph::new(Text::styled(
+                text.clone(),
+                Style::default().fg(Color::White),
+            ))
+            .block(block)
+            .wrap(Wrap { trim: false });
+            frame.render_widget(paragraph, dialog_area);
+        }
     }
 }
 
@@ -654,7 +689,16 @@ fn handle_events(app: &mut App) -> Result<(), String> {
             }
             KeyCode::Enter => {
                 match app.selected_operation {
-                    0 => {} // File Info — no action
+                    0 => {
+                        // Add roof area
+                        let report = ops::add_roof_area(&mut app.doc);
+                        app.modified = true;
+                        app.refresh_stats();
+                        app.dialog = Some(Dialog::Message {
+                            text: report.summary,
+                            is_error: report.is_error,
+                        });
+                    }
                     1 => {
                         // Remove attribute
                         let attrs = collect_attribute_names(app);
@@ -706,9 +750,20 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                     6 => {
                         // Validate schema
                         let report = ops::validate_schema(&app.doc);
-                        app.dialog = Some(Dialog::Message {
+                        let has_warnings = report.summary.contains("[warning]");
+                        app.dialog = Some(Dialog::Validation {
                             text: report.summary,
-                            is_error: report.is_error,
+                            has_errors: report.is_error,
+                            has_warnings,
+                        });
+                    }
+                    7 => {
+                        // Save
+                        let default = app.default_output_path();
+                        app.dialog = Some(Dialog::Save {
+                            input: default,
+                            cursor: 0,
+                            format: app.output_format,
                         });
                     }
                     _ => {}
@@ -1191,6 +1246,10 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
         }
 
         (Dialog::Message { .. }, KeyCode::Enter | KeyCode::Esc) => {
+            app.dialog = None;
+        }
+
+        (Dialog::Validation { .. }, KeyCode::Enter | KeyCode::Esc) => {
             app.dialog = None;
         }
 

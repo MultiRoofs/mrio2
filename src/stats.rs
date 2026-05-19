@@ -13,7 +13,7 @@ pub struct FileStats {
     pub object_type_counts: BTreeMap<String, usize>,
     pub other_object_types: BTreeMap<String, usize>,
     pub attribute_inventory: Vec<(String, usize, String)>,
-    pub extensions: Vec<String>,
+    pub extensions: Vec<(String, String)>,
     pub crs: String,
 }
 
@@ -108,11 +108,22 @@ pub fn compute_stats(doc: &CityJsonDocument) -> FileStats {
         .collect();
     attribute_inventory.sort_by(|a, b| a.0.cmp(&b.0));
 
-    let extensions: Vec<String> = doc
+    let extensions: Vec<(String, String)> = doc
         .header
         .get("extensions")
         .and_then(|v| v.as_object())
-        .map(|o| o.keys().cloned().collect())
+        .map(|o| {
+            o.iter()
+                .map(|(k, v)| {
+                    let url = v
+                        .get("url")
+                        .and_then(|u| u.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    (k.clone(), url)
+                })
+                .collect()
+        })
         .unwrap_or_default();
 
     let crs = doc

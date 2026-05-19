@@ -594,6 +594,95 @@ mod tests {
     }
 }
 
+pub fn add_roof_area(doc: &mut CityJsonDocument) -> OpReport {
+    // Collapse if CityJSONSeq so we operate on one CityObjects map
+    if !doc.features.is_empty() {
+        let collapsed = io::collapse(doc);
+        doc.header = collapsed.as_object().cloned().unwrap_or_default();
+        doc.features.clear();
+    }
+
+    let scale: [f64; 3] = doc
+        .header
+        .get("transform")
+        .and_then(|t| t.as_object())
+        .and_then(|t| t.get("scale"))
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            [
+                a.first().and_then(|v| v.as_f64()).unwrap_or(1.0),
+                a.get(1).and_then(|v| v.as_f64()).unwrap_or(1.0),
+                a.get(2).and_then(|v| v.as_f64()).unwrap_or(1.0),
+            ]
+        })
+        .unwrap_or([1.0, 1.0, 1.0]);
+    let translate: [f64; 3] = doc
+        .header
+        .get("transform")
+        .and_then(|t| t.as_object())
+        .and_then(|t| t.get("translate"))
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            [
+                a.first().and_then(|v| v.as_f64()).unwrap_or(0.0),
+                a.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0),
+                a.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0),
+            ]
+        })
+        .unwrap_or([0.0, 0.0, 0.0]);
+    let vertices: Vec<Value> = doc
+        .header
+        .get("vertices")
+        .and_then(|v| v.as_array())
+        .map(|a| a.clone())
+        .unwrap_or_default();
+
+    let city_objects = doc
+        .header
+        .get_mut("CityObjects")
+        .and_then(|v| v.as_object_mut());
+
+    let city_objects = match city_objects {
+        Some(c) => c,
+        None => {
+            return OpReport {
+                summary: "No CityObjects in file".to_string(),
+                affected: 0,
+                is_error: true,
+            }
+        }
+    };
+
+    let mut count = 0;
+    for (_id, obj) in city_objects.iter_mut() {
+        let area = compute_roof_area(obj, &vertices, &scale, &translate);
+        if area > 0.0 {
+            let attrs = obj.get_mut("attributes").and_then(|v| v.as_object_mut());
+            if let Some(attrs) = attrs {
+                attrs.insert(
+                    "+roof-total-area".to_string(),
+                    serde_json::json!((area * 1000.0).round() / 1000.0),
+                );
+            } else {
+                let mut new_attrs = Map::new();
+                new_attrs.insert(
+                    "+roof-total-area".to_string(),
+                    serde_json::json!((area * 1000.0).round() / 1000.0),
+                );
+                obj.as_object_mut()
+                    .map(|m| m.insert("attributes".to_string(), Value::Object(new_attrs)));
+            }
+            count += 1;
+        }
+    }
+
+    OpReport {
+        summary: format!("Added +roof-total-area to {} object(s)", count),
+        affected: count,
+        is_error: count == 0,
+    }
+}
+
 pub fn validate_schema(doc: &CityJsonDocument) -> OpReport {
     let collapsed = crate::io::collapse(doc);
     let json_str = serde_json::to_string_pretty(&collapsed).unwrap_or_default();
