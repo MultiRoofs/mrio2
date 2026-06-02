@@ -2,26 +2,47 @@
 
 Reads, modifies, and writes [CityJSON](https://www.cityjson.org/specs/2.0.2/) and [CityJSONSeq](https://www.cityjson.org/specs/2.0.2/#text-sequences-and-streaming-with-cityjsonfeature) files for the [MultiRoofs](https://github.com/multiroofs) project.
 
+Available as both a terminal UI (TUI) and a web application.
+
 ## Build & run
 
 Requires [Rust](https://rustup.rs/) 1.81+.
 
+### Terminal UI (TUI)
+
 ```sh
 cargo build --release
-cargo run -- data/3dbag_b2.city.json
-cargo run -- data/3dbag_b2.city.jsonl --output-format cityjson   # format conversion
+cargo run -p mrio2-cli -- data/3dbag_b2.city.json
+cargo run -p mrio2-cli -- data/3dbag_b2.city.jsonl --output-format cityjson   # format conversion
 ```
-
-## TUI
 
 ![](./misc/tui.png)
 
-## Usage
-
-- **Open a file**: `cargo run -- <file>`
+**Usage:**
+- **Open a file**: `cargo run -p mrio2-cli -- <file>`
 - **Operations**: select from the left panel with `↑↓`, press `Enter`
 - **Save**: press `s`, type output path, `f` toggles output format (CityJSON / CityJSONSeq)
 - **Quit**: `q` (confirms if unsaved)
+
+### Web application
+
+Requires [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) for building the WebAssembly module.
+
+```sh
+# Build the WASM module
+wasm-pack build crates/mrio2-web --target web --out-dir ../../web/pkg
+
+# Serve the web app (any static file server works)
+python3 -m http.server 8080 --directory web
+```
+
+Then open http://localhost:8080 in your browser.
+
+**Usage:**
+- **Open a file**: drag and drop a `.city.json` or `.city.jsonl` file onto the page, or click to browse
+- **Operations**: click buttons in the left panel, follow dialogs
+- **Download**: click the Download button to save the modified file
+- **Reset**: click "Load different file" at the bottom of the left panel to return to the start screen
 
 ## Operations
 

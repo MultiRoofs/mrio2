@@ -1,21 +1,9 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use serde_json::{Map, Number, Value};
 
 use crate::model::*;
 
-pub fn read_file(path: &str) -> Result<CityJsonDocument, String> {
-    let input_format = InputFormat::from_path(path);
-    let content = fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
-
-    match input_format {
-        InputFormat::CityJSON => read_cityjson(&content),
-        InputFormat::CityJSONSeq => read_cityjsonseq(&content),
-    }
-}
-
-fn read_cityjson(content: &str) -> Result<CityJsonDocument, String> {
+pub fn parse_cityjson(content: &str) -> Result<CityJsonDocument, String> {
     let value: Value =
         serde_json::from_str(content).map_err(|e| format!("Invalid JSON: {}", e))?;
     let header = value
@@ -29,7 +17,7 @@ fn read_cityjson(content: &str) -> Result<CityJsonDocument, String> {
     })
 }
 
-fn read_cityjsonseq(content: &str) -> Result<CityJsonDocument, String> {
+pub fn parse_cityjsonseq(content: &str) -> Result<CityJsonDocument, String> {
     let mut lines = content.lines().filter(|l| !l.trim().is_empty());
     let first = lines
         .next()
@@ -51,12 +39,37 @@ fn read_cityjsonseq(content: &str) -> Result<CityJsonDocument, String> {
     })
 }
 
-pub fn write_file(path: &str, doc: &CityJsonDocument, format: OutputFormat) -> Result<(), String> {
-    let content = match format {
+pub fn parse(content: &str, filename: &str) -> Result<CityJsonDocument, String> {
+    let format = InputFormat::from_path(filename);
+    match format {
+        InputFormat::CityJSON => parse_cityjson(content),
+        InputFormat::CityJSONSeq => parse_cityjsonseq(content),
+    }
+}
+
+pub fn serialize(doc: &CityJsonDocument, format: OutputFormat) -> Result<String, String> {
+    match format {
         OutputFormat::CityJSON => serialize_cityjson(doc),
         OutputFormat::CityJSONSeq => serialize_cityjsonseq(doc),
-    }?;
-    fs::write(path, content).map_err(|e| format!("Failed to write '{}': {}", path, e))?;
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn read_file(path: &str) -> Result<CityJsonDocument, String> {
+    let input_format = InputFormat::from_path(path);
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
+
+    match input_format {
+        InputFormat::CityJSON => parse_cityjson(&content),
+        InputFormat::CityJSONSeq => parse_cityjsonseq(&content),
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn write_file(path: &str, doc: &CityJsonDocument, format: OutputFormat) -> Result<(), String> {
+    let content = serialize(doc, format)?;
+    std::fs::write(path, content).map_err(|e| format!("Failed to write '{}': {}", path, e))?;
     Ok(())
 }
 
@@ -79,7 +92,6 @@ fn serialize_cityjsonseq(doc: &CityJsonDocument) -> Result<String, String> {
     Ok(lines.join("\n"))
 }
 
-/// Merge all features into a single CityJSON object.
 pub fn collapse(doc: &CityJsonDocument) -> Value {
     let mut result = doc.header.clone();
     if doc.features.is_empty() {
@@ -126,7 +138,6 @@ pub fn collapse(doc: &CityJsonDocument) -> Value {
     Value::Object(result)
 }
 
-/// Split a single CityJSON object into a header + features for CityJSONSeq.
 pub fn expand(doc: &CityJsonDocument) -> (Value, Vec<Value>) {
     let empty_objects = Value::Object(Map::new());
     let empty_vertices = Value::Array(vec![]);
@@ -275,7 +286,6 @@ fn add_offset_to_boundaries(val: &mut Value, geom_type: &str, offset: usize) {
             }
         }
         "GeometryInstance" => {
-            // GeometryInstance has boundaries = [vertex_index]
             if let Some(arr) = val_ref.as_array_mut() {
                 for item in arr.iter_mut() {
                     if let Some(n) = item.as_i64() {
@@ -545,7 +555,7 @@ mod tests {
 
     #[test]
     fn test_read_cityjson() {
-        let doc = read_file("data/3dbag_b2.city.json").unwrap();
+        let doc = read_file("../../data/3dbag_b2.city.json").unwrap();
         assert_eq!(doc.original_format, InputFormat::CityJSON);
         assert!(doc.features.is_empty());
         let objs = get_all_city_objects(&doc);
@@ -562,7 +572,7 @@ mod tests {
 
     #[test]
     fn test_read_cityjsonseq() {
-        let doc = read_file("data/3dbag_b2.city.jsonl").unwrap();
+        let doc = read_file("../../data/3dbag_b2.city.jsonl").unwrap();
         assert_eq!(doc.original_format, InputFormat::CityJSONSeq);
         assert!(!doc.features.is_empty(), "Should have features");
         for f in &doc.features {
@@ -577,7 +587,7 @@ mod tests {
 
     #[test]
     fn test_collapse() {
-        let doc = read_file("data/3dbag_b2.city.jsonl").unwrap();
+        let doc = read_file("../../data/3dbag_b2.city.jsonl").unwrap();
         let collapsed = collapse(&doc);
         let obj = collapsed.as_object().unwrap();
         assert_eq!(
@@ -591,7 +601,7 @@ mod tests {
 
     #[test]
     fn test_roundtrip() {
-        let doc = read_file("data/3dbag_b2.city.json").unwrap();
+        let doc = read_file("../../data/3dbag_b2.city.json").unwrap();
         let collapsed = collapse(&doc);
         let json = serde_json::to_string(&collapsed).unwrap();
         let reparsed: Value = serde_json::from_str(&json).unwrap();

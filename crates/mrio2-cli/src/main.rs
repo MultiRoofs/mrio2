@@ -1,11 +1,5 @@
-mod io;
-mod model;
-mod ops;
-mod stats;
-mod tui;
-
 use clap::Parser;
-use model::OutputFormat;
+use mrio2_core::model::OutputFormat;
 
 #[derive(Parser)]
 #[command(
@@ -13,14 +7,11 @@ use model::OutputFormat;
     about = "Editor to prepare CityJSON files for the MultiRoofs project"
 )]
 struct Cli {
-    /// Input file (.city.json or .city.jsonl)
     input: String,
 
-    /// Output file (omit to prompt in TUI)
     #[arg(short, long)]
     output: Option<String>,
 
-    /// Output format: cityjson, cityjsonseq, or auto (default: auto)
     #[arg(long)]
     output_format: Option<String>,
 }
@@ -28,7 +19,7 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
 
-    let doc = match io::read_file(&cli.input) {
+    let doc = match mrio2_core::io::read_file(&cli.input) {
         Ok(d) => d,
         Err(e) => {
             eprintln!("Error: {}", e);
@@ -54,3 +45,5 @@ fn main() {
         std::process::exit(1);
     }
 }
+
+mod tui;

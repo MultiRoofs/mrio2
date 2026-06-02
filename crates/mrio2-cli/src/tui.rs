@@ -8,10 +8,10 @@ use ratatui::{
 };
 use std::path::Path;
 
-use crate::io;
-use crate::model::{CityJsonDocument, OutputFormat};
-use crate::ops;
-use crate::stats::{compute_stats, FileStats};
+use mrio2_core::io;
+use mrio2_core::model::{CityJsonDocument, OutputFormat};
+use mrio2_core::ops;
+use mrio2_core::stats::{compute_stats, FileStats};
 
 const OPERATION_NAMES: &[&str] = &[
     "Attribute: add roof area",
@@ -158,7 +158,6 @@ pub fn run(
 fn render(frame: &mut Frame, app: &mut App) {
     let area = frame.area();
 
-    // Top title bar
     let top_rect = Layout::vertical([
         Constraint::Length(1),
         Constraint::Min(0),
@@ -168,17 +167,14 @@ fn render(frame: &mut Frame, app: &mut App) {
 
     render_title_bar(frame, top_rect[0], app);
 
-    // Middle: left panel + right panel
     let middle = Layout::horizontal([Constraint::Percentage(35), Constraint::Percentage(65)])
         .split(top_rect[1]);
 
     render_left_panel(frame, middle[0], app);
     render_right_panel(frame, middle[1], app);
 
-    // Bottom bar
     render_bottom_bar(frame, top_rect[2], app);
 
-    // Dialog overlay
     if let Some(ref dialog) = app.dialog.clone() {
         render_dialog(frame, area, dialog, app);
     }
@@ -293,20 +289,17 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         };
     }
 
-    // Format
     items.push(ListItem::new(Line::from(vec![
         bold!("Format:     "),
         Span::raw(format!("{} v{}", stats.format_name, stats.version)),
     ])));
     items.push(ListItem::new(Line::from("")));
 
-    // CRS
     items.push(ListItem::new(Line::from(vec![
         bold!("CRS:        "),
         Span::raw(&stats.crs),
     ])));
 
-    // Extensions
     if stats.extensions.is_empty() {
         items.push(ListItem::new(Line::from(bold!("Extensions:"))));
         items.push(ListItem::new(Line::from("  none")));
@@ -325,7 +318,6 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     }
     items.push(ListItem::new(Line::from("")));
 
-    // Object counts
     items.push(ListItem::new(Line::from(vec![
         bold!("Objects:    "),
         Span::raw(stats.total_objects.to_string()),
@@ -336,7 +328,6 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
     ])));
     items.push(ListItem::new(Line::from("")));
 
-    // Object types
     if !stats.object_type_counts.is_empty() {
         items.push(ListItem::new(Line::from(bold!("Object types:"))));
         for (ty, count) in &stats.object_type_counts {
@@ -356,7 +347,6 @@ fn render_right_panel(frame: &mut Frame, area: Rect, app: &mut App) {
         items.push(ListItem::new(Line::from("")));
     }
 
-    // Attributes
     if !stats.attribute_inventory.is_empty() {
         items.push(ListItem::new(Line::from(bold!(format!(
             "Attributes ({}):",
@@ -464,7 +454,6 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
             ))
             .block(block);
             frame.render_widget(text, dialog_area);
-            // Cursor
             frame.set_cursor_position((
                 dialog_area.x + 3 + (*cursor as u16).min(input.len() as u16),
                 dialog_area.y + 1,
@@ -632,12 +621,10 @@ fn handle_events(app: &mut App) -> Result<(), String> {
             return Ok(());
         }
 
-        // Dialog handling
         if let Some(ref dialog) = app.dialog.clone() {
             return handle_dialog_key(app, dialog.clone(), key);
         }
 
-        // No dialog — navigation/action
         match key.code {
             KeyCode::Char('q') => {
                 if app.modified {
@@ -690,7 +677,6 @@ fn handle_events(app: &mut App) -> Result<(), String> {
             KeyCode::Enter => {
                 match app.selected_operation {
                     0 => {
-                        // Add roof area
                         let report = ops::add_roof_area(&mut app.doc);
                         app.modified = true;
                         app.refresh_stats();
@@ -700,7 +686,6 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         });
                     }
                     1 => {
-                        // Remove attribute
                         let attrs = collect_attribute_names(app);
                         if attrs.is_empty() {
                             app.dialog = Some(Dialog::Message {
@@ -712,7 +697,6 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         }
                     }
                     2 => {
-                        // Rename attribute
                         let attrs = collect_attribute_names(app);
                         if attrs.is_empty() {
                             app.dialog = Some(Dialog::Message {
@@ -724,21 +708,18 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         }
                     }
                     3 => {
-                        // Add attributes from CSV
                         app.dialog = Some(Dialog::AddCsv {
                             input: String::new(),
                             cursor: 0,
                         });
                     }
                     4 => {
-                        // CRS: set EPSG
                         app.dialog = Some(Dialog::EpsgInput {
                             input: String::new(),
                             cursor: 0,
                         });
                     }
                     5 => {
-                        // Roofer → MultiRoofs
                         let report = ops::roofer2multiroofs(&mut app.doc);
                         app.modified = true;
                         app.refresh_stats();
@@ -748,7 +729,6 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         });
                     }
                     6 => {
-                        // Validate schema
                         let report = ops::validate_schema(&app.doc);
                         let has_warnings = report.summary.contains("[warning]");
                         app.dialog = Some(Dialog::Validation {
@@ -758,7 +738,6 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         });
                     }
                     7 => {
-                        // Save
                         let default = app.default_output_path();
                         app.dialog = Some(Dialog::Save {
                             input: default,
@@ -924,7 +903,6 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             }
         }
         (Dialog::RenameInput { .. }, KeyCode::Esc) => {
-            // Go back to pick list
             let attrs = collect_attribute_names(app);
             app.dialog = Some(Dialog::RenamePick { attrs, selected: 0 });
         }
@@ -999,7 +977,17 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
                 });
             } else {
                 let path = input.clone();
-                let report = ops::add_attributes_from_csv(&mut app.doc, &path);
+                let csv_content = match std::fs::read_to_string(&path) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        app.dialog = Some(Dialog::Message {
+                            text: format!("Failed to read CSV: {}", e),
+                            is_error: true,
+                        });
+                        return Ok(());
+                    }
+                };
+                let report = ops::add_attributes_from_csv(&mut app.doc, &csv_content);
                 app.modified = true;
                 app.refresh_stats();
                 app.dialog = Some(Dialog::Message {
@@ -1013,7 +1001,6 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
         }
 
         (Dialog::Save { .. }, KeyCode::Char('f')) => {
-            // Toggle format via a temporary extraction to avoid borrow conflicts
             let current = app.dialog.as_ref().and_then(|d| {
                 if let Dialog::Save { format, .. } = d {
                     Some(*format)

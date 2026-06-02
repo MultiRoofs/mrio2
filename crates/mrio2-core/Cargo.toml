@@ -1,0 +1,15 @@
+[package]
+name = "mrio2-core"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["native"]
+native = ["ureq"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+csv = "1"
+cjval = "0.9"
+ureq = { version = "3", optional = true }

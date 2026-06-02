@@ -1,0 +1,281 @@
+{
+  "type": "CityJSON",
+  "version": "2.0",
+  "CityObjects": {
+    "6": {
+      "type": "Building",
+      "geographicalExtent": [
+        85442.344004, 447140.171999, -0.411, 85452.989, 447156.018999, 11.505569
+      ],
+      "attributes": {
+        "aantal_verblijfsobjecten": 3,
+        "bouwjaar": 1915.0,
+        "gebruiksdoel": "woonfunctie",
+        "identificatie": "503100000004333",
+        "kas_warenhuis": false,
+        "oppervlakte_max": 67.0,
+        "oppervlakte_min": 62.0,
+        "rf_extrusion_mode": "standard",
+        "rf_force_lod11": false,
+        "rf_h_ground": -0.411,
+        "rf_h_pc_98p": 0.0,
+        "rf_h_roof_50p": 11.412,
+        "rf_h_roof_70p": 11.482,
+        "rf_h_roof_max": 11.629,
+        "rf_h_roof_min": 9.412,
+        "rf_h_roof_ridge": null,
+        "rf_is_glass_roof": false,
+        "rf_nodata_frac": 0.0,
+        "rf_nodata_r": 0.0,
+        "rf_pc_select": "PREFERRED_AND_LATEST",
+        "rf_pc_source": "",
+        "rf_pc_year": 2019,
+        "rf_pointcloud_unusable": false,
+        "rf_pt_density": 10.795848,
+        "rf_ridgelines": 0,
+        "rf_rmse_lod22": 1.233925,
+        "rf_roof_planes": 4,
+        "rf_roof_type": "slanted",
+        "rf_success": true,
+        "rf_t_run": 16,
+        "rf_volume_lod22": 796.610168,
+        "status": "Pand in gebruik"
+      },
+      "geometry": [
+        {
+          "type": "MultiSurface",
+          "lod": "0",
+          "boundaries": [[[0, 1, 2, 3, 4, 5]]]
+        }
+      ],
+      "children": ["6-0"]
+    },
+    "20-0": {
+      "type": "BuildingPart",
+      "geometry": [
+        {
+          "type": "Solid",
+          "lod": "2.2",
+          "boundaries": [
+            [
+              [[6, 7, 8, 9, 10, 11]],
+              [[12, 10, 9, 13]],
+              [[14, 11, 10, 12]],
+              [[15, 6, 11, 14]],
+              [[13, 9, 8, 16]],
+              [[16, 8, 7, 17]],
+              [[17, 7, 6, 15]],
+              [[17, 12, 13, 16]],
+              [[12, 17, 15, 14]]
+            ]
+          ],
+          "semantics": {
+            "surfaces": [
+              { "type": "GroundSurface" },
+              { "on_footprint_edge": true, "type": "WallSurface" },
+              { "on_footprint_edge": false, "type": "WallSurface" },
+              {
+                "rf_azimuth": 58.220089,
+                "rf_h_roof_50p": 8.027299,
+                "rf_h_roof_70p": 8.560281,
+                "rf_h_roof_max": 9.452261,
+                "rf_h_roof_min": 6.659925,
+                "rf_slope": 51.428627,
+                "type": "RoofSurface"
+              },
+              {
+                "rf_azimuth": 249.479187,
+                "rf_h_roof_50p": 9.298645,
+                "rf_h_roof_70p": 9.330113,
+                "rf_h_roof_max": 9.452261,
+                "rf_h_roof_min": 9.201343,
+                "rf_slope": 0.93377,
+                "type": "RoofSurface"
+              }
+            ],
+            "values": [[0, 1, 1, 1, 1, 1, 1, 3, 4]]
+          }
+        }
+      ],
+      "parents": ["20"]
+    },
+    "6-0": {
+      "type": "BuildingPart",
+      "geometry": [
+        {
+          "type": "Solid",
+          "lod": "2.2",
+          "boundaries": [
+            [
+              [[18, 19, 20, 4, 3, 2, 1, 21, 22, 0, 5]],
+              [[23, 1, 2, 24]],
+              [[24, 2, 3, 25]],
+              [[26, 19, 18, 27]],
+              [[28, 20, 19, 26]],
+              [[29, 0, 22, 30]],
+              [[25, 3, 4, 31]],
+              [[32, 5, 0, 29]],
+              [[27, 18, 5, 32]],
+              [[30, 22, 21, 33, 34]],
+              [[35, 36, 37]],
+              [[31, 4, 20, 28]],
+              [[33, 21, 1, 23]],
+              [[38, 39, 36, 35]],
+              [[34, 33, 39, 38]],
+              [[27, 32, 29, 30]],
+              [[36, 39, 28, 26, 37]],
+              [[39, 33, 23, 24, 25, 31, 28]],
+              [[34, 38, 35, 37, 26, 27, 30]]
+            ]
+          ],
+          "semantics": {
+            "surfaces": [
+              { "type": "GroundSurface" },
+              { "on_footprint_edge": true, "type": "WallSurface" },
+              { "on_footprint_edge": false, "type": "WallSurface" },
+              {
+                "rf_azimuth": 327.879333,
+                "rf_h_roof_50p": 10.344077,
+                "rf_h_roof_70p": 10.749922,
+                "rf_h_roof_max": 11.50022,
+                "rf_h_roof_min": 9.268505,
+                "rf_slope": 43.782711,
+                "type": "RoofSurface"
+              },
+              {
+                "rf_azimuth": 148.704132,
+                "rf_h_roof_50p": 10.681474,
+                "rf_h_roof_70p": 11.038518,
+                "rf_h_roof_max": 11.735463,
+                "rf_h_roof_min": 9.644628,
+                "rf_slope": 45.412659,
+                "type": "RoofSurface"
+              },
+              {
+                "rf_azimuth": 124.141121,
+                "rf_h_roof_50p": 9.469182,
+                "rf_h_roof_70p": 9.48257,
+                "rf_h_roof_max": 11.497804,
+                "rf_h_roof_min": 9.402407,
+                "rf_slope": 1.06091,
+                "type": "RoofSurface"
+              },
+              {
+                "rf_azimuth": 62.905087,
+                "rf_h_roof_50p": 11.487881,
+                "rf_h_roof_70p": 11.494736,
+                "rf_h_roof_max": 11.735463,
+                "rf_h_roof_min": 11.466599,
+                "rf_slope": 0.360994,
+                "type": "RoofSurface"
+              }
+            ],
+            "values": [
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 2, 3, 4, 5, 6]
+            ]
+          }
+        }
+      ],
+      "parents": ["6"]
+    },
+    "20": {
+      "type": "Building",
+      "geographicalExtent": [
+        85318.720999, 447145.175001, -0.311, 85335.921999, 447163.476, 9.395438
+      ],
+      "attributes": {
+        "aantal_verblijfsobjecten": 4,
+        "bouwjaar": 1920.0,
+        "gebruiksdoel": "woonfunctie",
+        "identificatie": "503100000019905",
+        "kas_warenhuis": false,
+        "oppervlakte_max": 127.0,
+        "oppervlakte_min": 67.0,
+        "rf_extrusion_mode": "standard",
+        "rf_force_lod11": false,
+        "rf_h_ground": -0.311,
+        "rf_h_pc_98p": 0.0,
+        "rf_h_roof_50p": 9.292,
+        "rf_h_roof_70p": 9.319,
+        "rf_h_roof_max": 9.455,
+        "rf_h_roof_min": 7.529,
+        "rf_h_roof_ridge": null,
+        "rf_is_glass_roof": false,
+        "rf_nodata_frac": 0.001527,
+        "rf_nodata_r": 0.0,
+        "rf_pc_select": "PREFERRED_AND_LATEST",
+        "rf_pc_source": "",
+        "rf_pc_year": 2019,
+        "rf_pointcloud_unusable": false,
+        "rf_pt_density": 10.513762,
+        "rf_ridgelines": 0,
+        "rf_rmse_lod22": 0.340296,
+        "rf_roof_planes": 5,
+        "rf_roof_type": "slanted",
+        "rf_success": true,
+        "rf_t_run": 27,
+        "rf_volume_lod22": 1545.099121,
+        "status": "Pand in gebruik"
+      },
+      "geometry": [
+        { "type": "MultiSurface", "lod": "0", "boundaries": [[[6, 11, 9, 8]]] }
+      ],
+      "children": ["20-0"]
+    }
+  },
+  "vertices": [
+    [152446, 111068, 25],
+    [160572, 98153, 25],
+    [162649, 99437, 25],
+    [160477, 102955, 25],
+    [163091, 104569, 25],
+    [157174, 114000, 25],
+    [28823, 115496, 125],
+    [36917, 120498, 125],
+    [38471, 121458, 125],
+    [46024, 109212, 125],
+    [44474, 108231, 125],
+    [36447, 103157, 125],
+    [44474, 108231, 9830],
+    [46024, 109212, 7530],
+    [36447, 103157, 9678],
+    [28823, 115496, 9633],
+    [38471, 121458, 7495],
+    [36917, 120498, 9785],
+    [158214, 112341, 25],
+    [161006, 107891, 25],
+    [162048, 106230, 25],
+    [157281, 103382, 25],
+    [153524, 109354, 25],
+    [160572, 98153, 9851],
+    [162649, 99437, 9833],
+    [160477, 102955, 9903],
+    [161006, 107891, 11902],
+    [158214, 112341, 11905],
+    [162048, 106230, 9913],
+    [152446, 111068, 9999],
+    [153524, 109354, 11940],
+    [163091, 104569, 9879],
+    [157174, 114000, 10028],
+    [157281, 103382, 9956],
+    [157281, 103382, 11936],
+    [158920, 106066, 11919],
+    [158920, 106066, 11419],
+    [159691, 107103, 11912],
+    [158807, 104294, 11925],
+    [158807, 104294, 9942],
+    [158807, 104294, 9942]
+  ],
+  "transform": {
+    "scale": [0.001, 0.001, 0.001],
+    "translate": [85289.898, 447042.018, -0.435]
+  },
+  "metadata": {
+    "geographicalExtent": [
+      85318.721, 447140.171, -0.41, 85452.989, 447163.476, 11.505
+    ],
+    "identifier": "04db7176-f038-40c1-8446-3454cc5ddd3b",
+    "referenceDate": "2026-04-30",
+    "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/28992"
+  }
+}
