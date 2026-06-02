@@ -24,6 +24,12 @@ cargo run -- data/file.city.jsonl --output-format cityjson   # convert format
 | `src/tui.rs` | ratatui app: operations panel, scrollable overview, dialogs |
 | `data/` | Example CityJSON/Seq files |
 
+## References
+
+- **Specs**: <https://www.cityjson.org/specs/2.0.2/>
+- **Schemas**: <https://3d.bk.tudelft.nl/schemas/cityjson/2.0.2/>
+- **Examples**: `./data/`
+
 ## Design constraints
 
 - **No typed CityJSON schema.** The entire document is stored as `serde_json::Value` / `Map<String, Value>`. All JSON manipulation is generic.
