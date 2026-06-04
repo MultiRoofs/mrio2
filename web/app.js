@@ -1,9 +1,10 @@
-import init, { WasmDocument } from './pkg/mrio2_web.js';
+import init, { WasmDocument, version } from './pkg/mrio2_web.js';
 
 let wasmDoc = null;
 
 async function initWasm() {
   await init();
+  document.getElementById('app-version').textContent = `v${version()}`;
 }
 
 initWasm().catch(err => {

@@ -6,6 +6,11 @@ use mrio2_core::ops;
 use mrio2_core::stats;
 
 #[wasm_bindgen]
+pub fn version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[wasm_bindgen]
 pub struct WasmDocument {
     doc: CityJsonDocument,
     filename: String,

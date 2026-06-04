@@ -1,185 +1,353 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>mrio2 — CityJSON Editor</title>
-  <link rel="stylesheet" href="https://unpkg.com/@knadh/oat/oat.min.css">
-  <script src="https://unpkg.com/@knadh/oat/oat.min.js" defer></script>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <nav data-topnav>
-    <div class="topnav-content">
-      <strong>mrio2</strong>
-      <span id="file-info" class="file-info"></span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mrio2 — CityJSON Editor</title>
+    <link rel="stylesheet" href="https://unpkg.com/@knadh/oat/oat.min.css" />
+    <script src="https://unpkg.com/@knadh/oat/oat.min.js" defer></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav data-topnav>
+      <div class="topnav-content">
+        <strong>mrio2 — MultiRoofs i/o</strong>
+        <span id="file-info" class="file-info"></span>
+      </div>
+    </nav>
+
+    <div id="drop-zone" class="drop-zone">
+      <div class="drop-zone-content">
+        <svg
+          width="64"
+          height="64"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+        >
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <h2>Drop a CityJSON file here</h2>
+        <p>or click to select a file (.city.json or .city.jsonl)</p>
+        <input
+          type="file"
+          id="file-input"
+          accept=".city.json,.city.jsonl,.json,.jsonl"
+          hidden
+        />
+        <button id="browse-btn">Browse files</button>
+      </div>
     </div>
-  </nav>
 
-  <div id="drop-zone" class="drop-zone">
-    <div class="drop-zone-content">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
-      <h2>Drop a CityJSON file here</h2>
-      <p>or click to select a file (.city.json or .city.jsonl)</p>
-      <input type="file" id="file-input" accept=".city.json,.city.jsonl,.json,.jsonl" hidden>
-      <button id="browse-btn">Browse files</button>
-    </div>
-  </div>
-
-  <div id="editor" class="editor-layout" style="display: none;">
-    <aside class="operations-panel">
-      <h3>Operations</h3>
-      <ul class="op-list">
-        <li><button data-op="add_roof_area" title="Compute and add +roof-total-area attribute">Attribute: add roof area</button></li>
-        <li><button data-op="remove_attribute" data-dialog="delete-attr-dialog" title="Remove an attribute from all objects">Attribute: delete</button></li>
-        <li><button data-op="rename_attribute" data-dialog="rename-attr-dialog" title="Rename an attribute">Attribute: rename</button></li>
-        <li><button data-op="add_from_csv" data-dialog="csv-dialog" title="Add attributes from a CSV file">Attributes: add from CSV</button></li>
-        <li><button data-op="set_epsg" data-dialog="epsg-dialog" title="Set the coordinate reference system">CRS: set EPSG</button></li>
-        <li><button data-op="roofer2multiroofs" title="Convert Roofer output to MultiRoofs format">Roofer → MultiRoofs</button></li>
-        <li><button data-op="validate_schema" title="Validate against CityJSON schema">Validate schema</button></li>
-        <li><button data-op="download" data-dialog="download-dialog" data-variant="secondary" title="Download the modified file">Download</button></li>
-      </ul>
-      <div class="panel-footer">
-        <button id="reset-btn" class="outline" title="Load a different file">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-          </svg>
-          Load different file
-        </button>
-      </div>
-    </aside>
-    <main class="overview-panel">
-      <h3>File Overview</h3>
-      <div id="stats-content" aria-busy="true" data-spinner="large overlay">
-        <p>Loading file information...</p>
-      </div>
-    </main>
-  </div>
-
-  <dialog id="delete-attr-dialog" closedby="any">
-    <form method="dialog">
-      <header>
-        <h3>Delete Attribute</h3>
-        <p>Select an attribute to remove from all CityObjects.</p>
-      </header>
-      <div>
-        <label data-field>
-          Attribute
-          <select id="delete-attr-select" aria-label="Select attribute to delete"></select>
-        </label>
-      </div>
-      <footer>
-        <button type="button" commandfor="delete-attr-dialog" command="close" class="outline">Cancel</button>
-        <button value="confirm" data-variant="danger">Delete</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="rename-attr-dialog" closedby="any">
-    <form method="dialog">
-      <header>
-        <h3>Rename Attribute</h3>
-        <p>Select an attribute and provide a new name.</p>
-      </header>
-      <div class="vstack">
-        <label data-field>
-          Current name
-          <select id="rename-attr-select" aria-label="Select attribute to rename"></select>
-        </label>
-        <label data-field>
-          New name
-          <input type="text" id="rename-new-name" placeholder="Enter new attribute name" required>
-        </label>
-      </div>
-      <footer>
-        <button type="button" commandfor="rename-attr-dialog" command="close" class="outline">Cancel</button>
-        <button value="confirm">Rename</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="csv-dialog" closedby="any">
-    <form method="dialog">
-      <header>
-        <h3>Add Attributes from CSV</h3>
-        <p>Upload a CSV file. First column should contain CityObject IDs.</p>
-      </header>
-      <div>
-        <label data-field>
-          CSV file
-          <input type="file" id="csv-file-input" accept=".csv,.txt" required>
-        </label>
-      </div>
-      <footer>
-        <button type="button" commandfor="csv-dialog" command="close" class="outline">Cancel</button>
-        <button value="confirm">Add attributes</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="epsg-dialog" closedby="any">
-    <form method="dialog">
-      <header>
-        <h3>Set EPSG Code</h3>
-        <p>Enter the EPSG code for the coordinate reference system (e.g., 28992 for Amersfoort/RD New).</p>
-      </header>
-      <div>
-        <label data-field>
-          EPSG code
-          <input type="number" id="epsg-input" placeholder="e.g. 28992" required>
-        </label>
-      </div>
-      <footer>
-        <button type="button" commandfor="epsg-dialog" command="close" class="outline">Cancel</button>
-        <button value="confirm">Set CRS</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="validation-dialog" closedby="any">
-    <form method="dialog">
-      <header>
-        <h3 id="validation-title">Schema Validation</h3>
-      </header>
-      <div id="validation-output" class="validation-list"></div>
-      <footer>
-        <button value="close">Close</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="download-dialog" closedby="any">
-    <form method="dialog">
-      <header>
-        <h3>Download File</h3>
-        <p>Choose the output format and filename.</p>
-      </header>
-      <div class="vstack">
-        <div data-field>
-          <label>Format</label>
-          <fieldset class="hstack">
-            <legend></legend>
-            <label><input type="radio" name="download-format" value="cityjson" checked> CityJSON</label>
-            <label><input type="radio" name="download-format" value="cityjsonseq"> CityJSONSeq</label>
-          </fieldset>
+    <div id="editor" class="editor-layout" style="display: none">
+      <aside class="operations-panel">
+        <h3>Operations</h3>
+        <ul class="op-list">
+          <li>
+            <button
+              data-op="add_roof_area"
+              title="Compute and add +roof-total-area attribute"
+            >
+              Attribute: add roof area
+            </button>
+          </li>
+          <li>
+            <button
+              data-op="remove_attribute"
+              data-dialog="delete-attr-dialog"
+              title="Remove an attribute from all objects"
+            >
+              Attribute: delete
+            </button>
+          </li>
+          <li>
+            <button
+              data-op="rename_attribute"
+              data-dialog="rename-attr-dialog"
+              title="Rename an attribute"
+            >
+              Attribute: rename
+            </button>
+          </li>
+          <li>
+            <button
+              data-op="add_from_csv"
+              data-dialog="csv-dialog"
+              title="Add attributes from a CSV file"
+            >
+              Attributes: add from CSV
+            </button>
+          </li>
+          <li>
+            <button
+              data-op="set_epsg"
+              data-dialog="epsg-dialog"
+              title="Set the coordinate reference system"
+            >
+              CRS: set EPSG
+            </button>
+          </li>
+          <li>
+            <button
+              data-op="roofer2multiroofs"
+              title="Convert Roofer output to MultiRoofs format"
+            >
+              Roofer → MultiRoofs
+            </button>
+          </li>
+          <li>
+            <button
+              data-op="validate_schema"
+              title="Validate against CityJSON schema"
+            >
+              Validate schema
+            </button>
+          </li>
+          <li>
+            <button
+              data-op="download"
+              data-dialog="download-dialog"
+              data-variant="secondary"
+              title="Download the modified file"
+            >
+              Download
+            </button>
+          </li>
+        </ul>
+        <div class="panel-footer">
+          <button id="reset-btn" class="outline" title="Load a different file">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+            Load different file
+          </button>
+          <div class="panel-footer-info">
+            <span id="app-version" class="app-version"></span>
+            <a href="https://github.com/multiroofs/mrio2" target="_blank" rel="noopener" class="github-link" title="View on GitHub">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+            </a>
+          </div>
         </div>
-        <label data-field>
-          Filename
-          <input type="text" id="download-filename" placeholder="output.city.json" required>
-        </label>
-      </div>
-      <footer>
-        <button type="button" commandfor="download-dialog" command="close" class="outline">Cancel</button>
-        <button value="confirm">Download</button>
-      </footer>
-    </form>
-  </dialog>
+      </aside>
+      <main class="overview-panel">
+        <h3>File Overview</h3>
+        <div id="stats-content" aria-busy="true" data-spinner="large overlay">
+          <p>Loading file information...</p>
+        </div>
+      </main>
+    </div>
 
-  <script type="module" src="app.js"></script>
-</body>
+    <dialog id="delete-attr-dialog" closedby="any">
+      <form method="dialog">
+        <header>
+          <h3>Delete Attribute</h3>
+          <p>Select an attribute to remove from all CityObjects.</p>
+        </header>
+        <div>
+          <label data-field>
+            Attribute
+            <select
+              id="delete-attr-select"
+              aria-label="Select attribute to delete"
+            ></select>
+          </label>
+        </div>
+        <footer>
+          <button
+            type="button"
+            commandfor="delete-attr-dialog"
+            command="close"
+            class="outline"
+          >
+            Cancel
+          </button>
+          <button value="confirm" data-variant="danger">Delete</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="rename-attr-dialog" closedby="any">
+      <form method="dialog">
+        <header>
+          <h3>Rename Attribute</h3>
+          <p>Select an attribute and provide a new name.</p>
+        </header>
+        <div class="vstack">
+          <label data-field>
+            Current name
+            <select
+              id="rename-attr-select"
+              aria-label="Select attribute to rename"
+            ></select>
+          </label>
+          <label data-field>
+            New name
+            <input
+              type="text"
+              id="rename-new-name"
+              placeholder="Enter new attribute name"
+              required
+            />
+          </label>
+        </div>
+        <footer>
+          <button
+            type="button"
+            commandfor="rename-attr-dialog"
+            command="close"
+            class="outline"
+          >
+            Cancel
+          </button>
+          <button value="confirm">Rename</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="csv-dialog" closedby="any">
+      <form method="dialog">
+        <header>
+          <h3>Add Attributes from CSV</h3>
+          <p>Upload a CSV file. First column should contain CityObject IDs.</p>
+        </header>
+        <div>
+          <label data-field>
+            CSV file
+            <input
+              type="file"
+              id="csv-file-input"
+              accept=".csv,.txt"
+              required
+            />
+          </label>
+        </div>
+        <footer>
+          <button
+            type="button"
+            commandfor="csv-dialog"
+            command="close"
+            class="outline"
+          >
+            Cancel
+          </button>
+          <button value="confirm">Add attributes</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="epsg-dialog" closedby="any">
+      <form method="dialog">
+        <header>
+          <h3>Set EPSG Code</h3>
+          <p>
+            Enter the EPSG code for the coordinate reference system (e.g., 28992
+            for Amersfoort/RD New).
+          </p>
+        </header>
+        <div>
+          <label data-field>
+            EPSG code
+            <input
+              type="number"
+              id="epsg-input"
+              placeholder="e.g. 28992"
+              required
+            />
+          </label>
+        </div>
+        <footer>
+          <button
+            type="button"
+            commandfor="epsg-dialog"
+            command="close"
+            class="outline"
+          >
+            Cancel
+          </button>
+          <button value="confirm">Set CRS</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="validation-dialog" closedby="any">
+      <form method="dialog">
+        <header>
+          <h3 id="validation-title">Schema Validation</h3>
+        </header>
+        <div id="validation-output" class="validation-list"></div>
+        <footer>
+          <button value="close">Close</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog id="download-dialog" closedby="any">
+      <form method="dialog">
+        <header>
+          <h3>Download File</h3>
+          <p>Choose the output format and filename.</p>
+        </header>
+        <div class="vstack">
+          <div data-field>
+            <label>Format</label>
+            <fieldset class="hstack">
+              <legend></legend>
+              <label
+                ><input
+                  type="radio"
+                  name="download-format"
+                  value="cityjson"
+                  checked
+                />
+                CityJSON</label
+              >
+              <label
+                ><input
+                  type="radio"
+                  name="download-format"
+                  value="cityjsonseq"
+                />
+                CityJSONSeq</label
+              >
+            </fieldset>
+          </div>
+          <label data-field>
+            Filename
+            <input
+              type="text"
+              id="download-filename"
+              placeholder="output.city.json"
+              required
+            />
+          </label>
+        </div>
+        <footer>
+          <button
+            type="button"
+            commandfor="download-dialog"
+            command="close"
+            class="outline"
+          >
+            Cancel
+          </button>
+          <button value="confirm">Download</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <script type="module" src="app.js"></script>
+  </body>
 </html>

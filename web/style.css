@@ -3,7 +3,7 @@
   --foreground: #1e293b;
   --card: #ffffff;
   --card-foreground: #1e293b;
-  --primary: #2563eb;
+  --primary: #0F4291;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #475569;
@@ -11,8 +11,8 @@
   --muted-foreground: #64748b;
   --faint: #f8fafc;
   --faint-foreground: #94a3b8;
-  --accent: #f59e0b;
-  --accent-foreground: #1e293b;
+  --accent: #22B3A4;
+  --accent-foreground: #ffffff;
   --danger: #dc2626;
   --danger-foreground: #ffffff;
   --success: #16a34a;
@@ -21,7 +21,7 @@
   --warning-foreground: #1e293b;
   --border: #e2e8f0;
   --input: #cbd5e1;
-  --ring: #2563eb;
+  --ring: #22B3A4;
 }
 
 body {
@@ -31,8 +31,8 @@ body {
 }
 
 [data-topnav] {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: var(--accent);
+  color: var(--accent-foreground);
   padding: var(--space-3) var(--space-6);
 }
 
@@ -74,7 +74,7 @@ body {
 
 .drop-zone.dragover .drop-zone-content {
   border-color: var(--accent);
-  background: #fffbeb;
+  background: #f0fdfb;
   transform: scale(1.02);
 }
 
@@ -117,14 +117,40 @@ body {
 
 .operations-panel h3 {
   margin: 0 0 var(--space-3);
-  color: var(--foreground);
+  color: var(--primary);
   font-size: var(--text-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--accent);
 }
 
 .panel-footer {
   margin-top: auto;
   padding-top: var(--space-4);
   border-top: 1px solid var(--border);
+}
+
+.panel-footer-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.app-version {
+  font-size: var(--text-8);
+  color: var(--muted-foreground);
+}
+
+.github-link {
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.github-link:hover {
+  color: var(--foreground);
 }
 
 .panel-footer button {
@@ -165,9 +191,11 @@ body {
 }
 
 .overview-panel h3 {
-  margin: 0 0 var(--space-3);
-  color: var(--foreground);
+  margin: 0 0 var(--space-4);
+  color: var(--primary);
   font-size: var(--text-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 2px solid var(--accent);
 }
 
 #stats-content {
@@ -176,15 +204,19 @@ body {
 
 .stats-section {
   margin-bottom: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--border);
 }
 
 .stats-section h4 {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-3);
   font-size: var(--text-6);
-  color: var(--foreground);
+  color: var(--primary);
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 4px solid var(--accent);
 }
 
 .stats-grid {

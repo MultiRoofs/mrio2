@@ -184,7 +184,8 @@ fn render_title_bar(frame: &mut Frame, area: Rect, app: &App) {
     let fmt = app.output_format.label();
     let modified = if app.modified { " *" } else { "" };
     let title = format!(
-        " mrio2 — {}{}  [{}]  (v{})",
+        " mrio2 v{} — {}{}  [{}]  (CityJSON v{})",
+        env!("CARGO_PKG_VERSION"),
         Path::new(&app.input_path)
             .file_name()
             .and_then(|s| s.to_str())
