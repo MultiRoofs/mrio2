@@ -1,14 +1,14 @@
 [package]
-name = "mrio2-cli"
+name = "mrio-cli"
 version.workspace = true
 edition.workspace = true
 
 [[bin]]
-name = "mrio2"
+name = "mrio"
 path = "src/main.rs"
 
 [dependencies]
-mrio2-core = { path = "../mrio2-core", features = ["native"] }
+mrio-core = { path = "../mrio-core", features = ["native"] }
 ratatui = "0.29"
 crossterm = "0.28"
 clap = { version = "4", features = ["derive"] }

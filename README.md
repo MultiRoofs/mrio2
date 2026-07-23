@@ -1,4 +1,4 @@
-# mrio2
+# mrio
 
 Reads, modifies, and writes [CityJSON](https://www.cityjson.org/specs/2.0.2/) and [CityJSONSeq](https://www.cityjson.org/specs/2.0.2/#text-sequences-and-streaming-with-cityjsonfeature) files for the [MultiRoofs](https://github.com/multiroofs) project.
 
@@ -12,14 +12,14 @@ Requires [Rust](https://rustup.rs/) 1.81+.
 
 ```sh
 cargo build --release
-cargo run -p mrio2-cli -- data/3dbag_b2.city.json
-cargo run -p mrio2-cli -- data/3dbag_b2.city.jsonl --output-format cityjson   # format conversion
+cargo run -p mrio-cli -- data/3dbag_b2.city.json
+cargo run -p mrio-cli -- data/3dbag_b2.city.jsonl --output-format cityjson   # format conversion
 ```
 
 ![](./misc/tui.png)
 
 **Usage:**
-- **Open a file**: `cargo run -p mrio2-cli -- <file>`
+- **Open a file**: `cargo run -p mrio-cli -- <file>`
 - **Operations**: select from the left panel with `↑↓`, press `Enter`
 - **Save**: press `s`, type output path, `f` toggles output format (CityJSON / CityJSONSeq)
 - **Quit**: `q` (confirms if unsaved)
@@ -30,7 +30,7 @@ Requires [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) for buildi
 
 ```sh
 # Build the WASM module
-wasm-pack build crates/mrio2-web --target web --out-dir ../../web/pkg
+wasm-pack build crates/mrio-web --target web --out-dir ../../web/pkg
 
 # Serve the web app (any static file server works)
 python3 -m http.server 8080 --directory web

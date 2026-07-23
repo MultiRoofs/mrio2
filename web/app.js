@@ -1,4 +1,4 @@
-import init, { WasmDocument, version } from './pkg/mrio2_web.js';
+import init, { WasmDocument, version } from './pkg/mrio_web.js';
 
 let wasmDoc = null;
 

@@ -1,9 +1,9 @@
 use wasm_bindgen::prelude::*;
 use serde::{Serialize, Deserialize};
-use mrio2_core::model::{CityJsonDocument, OutputFormat};
-use mrio2_core::io;
-use mrio2_core::ops;
-use mrio2_core::stats;
+use mrio_core::model::{CityJsonDocument, OutputFormat};
+use mrio_core::io;
+use mrio_core::ops;
+use mrio_core::stats;
 
 #[wasm_bindgen]
 pub fn version() -> String {

@@ -8,10 +8,10 @@ use ratatui::{
 };
 use std::path::Path;
 
-use mrio2_core::io;
-use mrio2_core::model::{CityJsonDocument, OutputFormat};
-use mrio2_core::ops;
-use mrio2_core::stats::{compute_stats, FileStats};
+use mrio_core::io;
+use mrio_core::model::{CityJsonDocument, OutputFormat};
+use mrio_core::ops;
+use mrio_core::stats::{compute_stats, FileStats};
 
 const OPERATION_NAMES: &[&str] = &[
     "Attribute: add roof area",
@@ -185,7 +185,7 @@ fn render_title_bar(frame: &mut Frame, area: Rect, app: &App) {
     let fmt = app.output_format.label();
     let modified = if app.modified { " *" } else { "" };
     let title = format!(
-        " mrio2 v{} — {}{}  [{}]  (CityJSON v{})",
+        " mrio v{} — {}{}  [{}]  (CityJSON v{})",
         env!("CARGO_PKG_VERSION"),
         Path::new(&app.input_path)
             .file_name()

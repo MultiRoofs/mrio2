@@ -1,9 +1,9 @@
 use clap::Parser;
-use mrio2_core::model::OutputFormat;
+use mrio_core::model::OutputFormat;
 
 #[derive(Parser)]
 #[command(
-    name = "mrio2",
+    name = "mrio",
     about = "Editor to prepare CityJSON files for the MultiRoofs project"
 )]
 struct Cli {
@@ -19,7 +19,7 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
 
-    let doc = match mrio2_core::io::read_file(&cli.input) {
+    let doc = match mrio_core::io::read_file(&cli.input) {
         Ok(d) => d,
         Err(e) => {
             eprintln!("Error: {}", e);

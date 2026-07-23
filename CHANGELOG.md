@@ -4,7 +4,7 @@
 
 ### Added
 
-- Workspace restructure: monorepo split into `mrio2-core`, `mrio2-cli`, `mrio2-web` crates
+- Workspace restructure: monorepo split into `mrio-core`, `mrio-cli`, `mrio-web` crates
 - Web app (WASM) with drag-and-drop, operations panel, validation, and download
 - **Roof total area** operation — computes and adds per-object roof area attribute
 - **Set CRS EPSG** operation — changes the CRS EPSG code of the document
