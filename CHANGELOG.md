@@ -1,11 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-07-23
 
+### Added
+- **Volume** operation — computes and adds per-object building volume attribute
+
+### Changed
+- Renamed project from `mrio2` to `mrio`
+- Add a link to latest version of the MultiRoofs Extension
 
 
 
 ## 0.2.0 — 2026-06-04
-
 ### Added
 - Workspace restructure: monorepo split into `mrio-core`, `mrio-cli`, `mrio-web` crates
 - Web app (WASM) with drag-and-drop, operations panel, validation, and download
