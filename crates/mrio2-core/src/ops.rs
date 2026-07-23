@@ -481,6 +481,199 @@ fn ring_area_3d(indices: &[usize], vertices: &[Value], scale: &[f64; 3], transla
     0.5 * (cx * cx + cy * cy + cz * cz).sqrt()
 }
 
+fn ring_volume_contribution(indices: &[usize], vertices: &[Value], scale: &[f64; 3], translate: &[f64; 3]) -> f64 {
+    if indices.len() < 3 {
+        return 0.0;
+    }
+    let n = if indices.len() > 1 && indices[0] == indices[indices.len() - 1] {
+        indices.len() - 1
+    } else {
+        indices.len()
+    };
+    if n < 3 {
+        return 0.0;
+    }
+    let get_pt = |idx: usize| -> Option<[f64; 3]> {
+        let v = vertices.get(idx).and_then(|v| v.as_array())?;
+        Some([
+            v.get(0).and_then(|n| n.as_f64()).unwrap_or(0.0) * scale[0] + translate[0],
+            v.get(1).and_then(|n| n.as_f64()).unwrap_or(0.0) * scale[1] + translate[1],
+            v.get(2).and_then(|n| n.as_f64()).unwrap_or(0.0) * scale[2] + translate[2],
+        ])
+    };
+    let p0 = match get_pt(indices[0]) {
+        Some(p) => p,
+        None => return 0.0,
+    };
+    let mut vol = 0.0;
+    for i in 1..n - 1 {
+        let b = match get_pt(indices[i]) {
+            Some(p) => p,
+            None => continue,
+        };
+        let c = match get_pt(indices[i + 1]) {
+            Some(p) => p,
+            None => continue,
+        };
+        // Use p0 as reference point for the tetrahedron.
+        // u = b - p0 and w = c - p0 have small magnitude (span a single polygon),
+        // so the cross product (u × w) involves much smaller numbers than
+        // the origin-based formula (v1 × v2) which would span the entire mesh.
+        let ux = b[0] - p0[0];
+        let uy = b[1] - p0[1];
+        let uz = b[2] - p0[2];
+        let wx = c[0] - p0[0];
+        let wy = c[1] - p0[1];
+        let wz = c[2] - p0[2];
+        // Scalar triple product: p0 · (u × w)
+        let det = p0[0] * (uy * wz - uz * wy)
+                + p0[1] * (uz * wx - ux * wz)
+                + p0[2] * (ux * wy - uy * wx);
+        vol += det;
+    }
+    vol / 6.0
+}
+
+fn compute_volume(obj: &Value, vertices: &[Value], scale: &[f64; 3], translate: &[f64; 3]) -> f64 {
+    let geoms = match obj.get("geometry").and_then(|v| v.as_array()) {
+        Some(g) => g,
+        None => return 0.0,
+    };
+    let mut total = 0.0;
+    for geom in geoms {
+        let geom_type = geom.get("type").and_then(|v| v.as_str()).unwrap_or("");
+        let boundaries = match geom.get("boundaries").and_then(|v| v.as_array()) {
+            Some(b) => b,
+            None => continue,
+        };
+        match geom_type {
+            "Solid" => {
+                for shell in boundaries {
+                    let faces = match shell.as_array() {
+                        Some(f) => f,
+                        None => continue,
+                    };
+                    for face in faces {
+                        let rings = match face.as_array() {
+                            Some(r) => r,
+                            None => continue,
+                        };
+                        for ring in rings {
+                            if let Some(arr) = ring.as_array() {
+                                let indices: Vec<usize> =
+                                    arr.iter().filter_map(|v| v.as_i64().map(|n| n as usize)).collect();
+                                total += ring_volume_contribution(&indices, vertices, scale, translate);
+                            }
+                        }
+                    }
+                }
+            }
+            "CompositeSurface" => {
+                for face in boundaries {
+                    let rings = match face.as_array() {
+                        Some(r) => r,
+                        None => continue,
+                    };
+                    for ring in rings {
+                        if let Some(arr) = ring.as_array() {
+                            let indices: Vec<usize> =
+                                arr.iter().filter_map(|v| v.as_i64().map(|n| n as usize)).collect();
+                            total += ring_volume_contribution(&indices, vertices, scale, translate);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    total.abs()
+}
+
+pub fn add_volume(doc: &mut CityJsonDocument) -> OpReport {
+    if !doc.features.is_empty() {
+        let collapsed = io::collapse(doc);
+        doc.header = collapsed.as_object().cloned().unwrap_or_default();
+        doc.features.clear();
+    }
+
+    let scale: [f64; 3] = doc
+        .header
+        .get("transform")
+        .and_then(|t| t.as_object())
+        .and_then(|t| t.get("scale"))
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            [
+                a.first().and_then(|v| v.as_f64()).unwrap_or(1.0),
+                a.get(1).and_then(|v| v.as_f64()).unwrap_or(1.0),
+                a.get(2).and_then(|v| v.as_f64()).unwrap_or(1.0),
+            ]
+        })
+        .unwrap_or([1.0, 1.0, 1.0]);
+    let translate: [f64; 3] = doc
+        .header
+        .get("transform")
+        .and_then(|t| t.as_object())
+        .and_then(|t| t.get("translate"))
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            [
+                a.first().and_then(|v| v.as_f64()).unwrap_or(0.0),
+                a.get(1).and_then(|v| v.as_f64()).unwrap_or(0.0),
+                a.get(2).and_then(|v| v.as_f64()).unwrap_or(0.0),
+            ]
+        })
+        .unwrap_or([0.0, 0.0, 0.0]);
+    let vertices: Vec<Value> = doc
+        .header
+        .get("vertices")
+        .and_then(|v| v.as_array())
+        .map(|a| a.clone())
+        .unwrap_or_default();
+
+    let city_objects = doc.header.get_mut("CityObjects").and_then(|v| v.as_object_mut());
+
+    let city_objects = match city_objects {
+        Some(c) => c,
+        None => {
+            return OpReport {
+                summary: "No CityObjects in file".to_string(),
+                affected: 0,
+                is_error: true,
+            }
+        }
+    };
+
+    let mut count = 0;
+    for (_id, obj) in city_objects.iter_mut() {
+        let volume = compute_volume(obj, &vertices, &scale, &translate);
+        if volume > 0.0 {
+            let attrs = obj.get_mut("attributes").and_then(|v| v.as_object_mut());
+            if let Some(attrs) = attrs {
+                attrs.insert(
+                    "+building-volume".to_string(),
+                    serde_json::json!((volume * 1000.0).round() / 1000.0),
+                );
+            } else {
+                let mut new_attrs = Map::new();
+                new_attrs.insert(
+                    "+building-volume".to_string(),
+                    serde_json::json!((volume * 1000.0).round() / 1000.0),
+                );
+                obj.as_object_mut()
+                    .map(|m| m.insert("attributes".to_string(), Value::Object(new_attrs)));
+            }
+            count += 1;
+        }
+    }
+
+    OpReport {
+        summary: format!("Added +building-volume to {} object(s)", count),
+        affected: count,
+        is_error: count == 0,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -541,6 +734,30 @@ mod tests {
         let expected_json =
             serde_json::to_string_pretty(&io::collapse(&expected_doc)).unwrap();
         assert_eq!(result_json, expected_json, "Output does not match expected");
+    }
+
+    #[test]
+    fn test_add_volume() {
+        let mut doc = io::read_file("../../data/3dbag_b2.city.json").unwrap();
+        let report = add_volume(&mut doc);
+        assert!(!report.is_error, "add_volume failed: {}", report.summary);
+        assert!(report.affected > 0, "No objects got volume");
+
+        for (id, obj) in io::get_all_city_objects(&doc) {
+            if let Some(attrs) = obj.get("attributes").and_then(|v| v.as_object()) {
+                if let Some(vol) = attrs.get("+building-volume").and_then(|v| v.as_f64()) {
+                    assert!(vol > 0.0, "Volume for '{}' should be positive, got {}", id, vol);
+                    if let Some(reference) = attrs.get("b3_volume_lod22").and_then(|v| v.as_f64()) {
+                        let ratio = (vol - reference).abs() / reference;
+                        assert!(
+                            ratio < 0.05,
+                            "Volume for '{}': computed={}, reference={}, ratio={}",
+                            id, vol, reference, ratio
+                        );
+                    }
+                }
+            }
+        }
     }
 }
 

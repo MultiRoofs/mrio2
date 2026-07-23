@@ -15,6 +15,7 @@ use mrio2_core::stats::{compute_stats, FileStats};
 
 const OPERATION_NAMES: &[&str] = &[
     "Attribute: add roof area",
+    "Attribute: add volume",
     "Attribute: delete",
     "Attribute: rename",
     "Attributes: add from CSV",
@@ -687,6 +688,15 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                         });
                     }
                     1 => {
+                        let report = ops::add_volume(&mut app.doc);
+                        app.modified = true;
+                        app.refresh_stats();
+                        app.dialog = Some(Dialog::Message {
+                            text: report.summary,
+                            is_error: report.is_error,
+                        });
+                    }
+                    2 => {
                         let attrs = collect_attribute_names(app);
                         if attrs.is_empty() {
                             app.dialog = Some(Dialog::Message {
@@ -697,7 +707,7 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                             app.dialog = Some(Dialog::RemoveAttr { attrs, selected: 0 });
                         }
                     }
-                    2 => {
+                    3 => {
                         let attrs = collect_attribute_names(app);
                         if attrs.is_empty() {
                             app.dialog = Some(Dialog::Message {
@@ -708,19 +718,19 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                             app.dialog = Some(Dialog::RenamePick { attrs, selected: 0 });
                         }
                     }
-                    3 => {
+                    4 => {
                         app.dialog = Some(Dialog::AddCsv {
                             input: String::new(),
                             cursor: 0,
                         });
                     }
-                    4 => {
+                    5 => {
                         app.dialog = Some(Dialog::EpsgInput {
                             input: String::new(),
                             cursor: 0,
                         });
                     }
-                    5 => {
+                    6 => {
                         let report = ops::roofer2multiroofs(&mut app.doc);
                         app.modified = true;
                         app.refresh_stats();
@@ -729,7 +739,7 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                             is_error: report.is_error,
                         });
                     }
-                    6 => {
+                    7 => {
                         let report = ops::validate_schema(&app.doc);
                         let has_warnings = report.summary.contains("[warning]");
                         app.dialog = Some(Dialog::Validation {
@@ -738,7 +748,7 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                             has_warnings,
                         });
                     }
-                    7 => {
+                    8 => {
                         let default = app.default_output_path();
                         app.dialog = Some(Dialog::Save {
                             input: default,

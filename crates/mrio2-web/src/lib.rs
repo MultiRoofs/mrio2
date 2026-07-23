@@ -84,6 +84,7 @@ impl WasmDocument {
     pub fn run_operation(&mut self, op: &str, param: &str) -> Result<JsValue, JsValue> {
         let report = match op {
             "add_roof_area" => ops::add_roof_area(&mut self.doc),
+            "add_volume" => ops::add_volume(&mut self.doc),
             "remove_attribute" => ops::remove_attribute(&mut self.doc, param),
             "rename_attribute" => {
                 let parts: Vec<&str> = param.splitn(2, '|').collect();

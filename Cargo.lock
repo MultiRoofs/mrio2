@@ -895,7 +895,7 @@ dependencies = [
 
 [[package]]
 name = "mrio2-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "clap",
  "crossterm",
@@ -906,7 +906,7 @@ dependencies = [
 
 [[package]]
 name = "mrio2-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "cjval",
  "csv",
@@ -917,7 +917,7 @@ dependencies = [
 
 [[package]]
 name = "mrio2-web"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "getrandom 0.3.4",
  "mrio2-core",
