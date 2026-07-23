@@ -1,9 +1,9 @@
-use wasm_bindgen::prelude::*;
-use serde::{Serialize, Deserialize};
-use mrio_core::model::{CityJsonDocument, OutputFormat};
 use mrio_core::io;
+use mrio_core::model::{CityJsonDocument, OutputFormat};
 use mrio_core::ops;
 use mrio_core::stats;
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub fn version() -> String {
@@ -41,8 +41,7 @@ pub struct OpResult {
 impl WasmDocument {
     #[wasm_bindgen(constructor)]
     pub fn new(content: &str, filename: &str) -> Result<WasmDocument, JsValue> {
-        let doc = io::parse(content, filename)
-            .map_err(|e| JsValue::from_str(&e))?;
+        let doc = io::parse(content, filename).map_err(|e| JsValue::from_str(&e))?;
         Ok(WasmDocument {
             doc,
             filename: filename.to_string(),
@@ -63,8 +62,7 @@ impl WasmDocument {
             extensions: s.extensions,
             crs: s.crs,
         };
-        serde_wasm_bindgen::to_value(&result)
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&result).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     pub fn get_attributes(&self) -> Result<JsValue, JsValue> {
@@ -77,8 +75,7 @@ impl WasmDocument {
             }
         }
         let attrs: Vec<String> = names.into_iter().collect();
-        serde_wasm_bindgen::to_value(&attrs)
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&attrs).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     pub fn run_operation(&mut self, op: &str, param: &str) -> Result<JsValue, JsValue> {
@@ -105,8 +102,7 @@ impl WasmDocument {
             affected: report.affected,
             is_error: report.is_error,
         };
-        serde_wasm_bindgen::to_value(&result)
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&result).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     pub fn serialize(&self, format: &str) -> Result<String, JsValue> {
@@ -115,8 +111,7 @@ impl WasmDocument {
             "cityjsonseq" => OutputFormat::CityJSONSeq,
             _ => return Err(JsValue::from_str(&format!("Unknown format: {}", format))),
         };
-        io::serialize(&self.doc, fmt)
-            .map_err(|e| JsValue::from_str(&e))
+        io::serialize(&self.doc, fmt).map_err(|e| JsValue::from_str(&e))
     }
 
     pub fn get_filename(&self) -> String {
@@ -132,10 +127,18 @@ impl WasmDocument {
     }
 
     pub fn get_extension_urls(&self) -> JsValue {
-        if let Some(exts) = self.doc.header.get("extensions").and_then(|v| v.as_object()) {
-            let urls: Vec<String> = exts.iter()
+        if let Some(exts) = self
+            .doc
+            .header
+            .get("extensions")
+            .and_then(|v| v.as_object())
+        {
+            let urls: Vec<String> = exts
+                .iter()
                 .filter_map(|(name, ext)| {
-                    ext.get("url").and_then(|u| u.as_str()).map(|url| format!("{}|{}", name, url))
+                    ext.get("url")
+                        .and_then(|u| u.as_str())
+                        .map(|url| format!("{}|{}", name, url))
                 })
                 .collect();
             if urls.is_empty() {
@@ -155,7 +158,6 @@ impl WasmDocument {
             affected: report.affected,
             is_error: report.is_error,
         };
-        serde_wasm_bindgen::to_value(&result)
-            .map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&result).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

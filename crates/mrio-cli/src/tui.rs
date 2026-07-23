@@ -512,7 +512,8 @@ fn render_dialog(frame: &mut Frame, area: Rect, dialog: &Dialog, _app: &App) {
             ));
         }
         Dialog::ConfirmOverwrite {
-            ref path, format: _,
+            ref path,
+            format: _,
         } => {
             let block = Block::default()
                 .title(" File Exists ")
@@ -676,89 +677,87 @@ fn handle_events(app: &mut App) -> Result<(), String> {
                     app.right_scroll = app.right_scroll.saturating_sub(10);
                 }
             }
-            KeyCode::Enter => {
-                match app.selected_operation {
-                    0 => {
-                        let report = ops::add_roof_area(&mut app.doc);
-                        app.modified = true;
-                        app.refresh_stats();
-                        app.dialog = Some(Dialog::Message {
-                            text: report.summary,
-                            is_error: report.is_error,
-                        });
-                    }
-                    1 => {
-                        let report = ops::add_volume(&mut app.doc);
-                        app.modified = true;
-                        app.refresh_stats();
-                        app.dialog = Some(Dialog::Message {
-                            text: report.summary,
-                            is_error: report.is_error,
-                        });
-                    }
-                    2 => {
-                        let attrs = collect_attribute_names(app);
-                        if attrs.is_empty() {
-                            app.dialog = Some(Dialog::Message {
-                                text: "No attributes found in any CityObject.".to_string(),
-                                is_error: true,
-                            });
-                        } else {
-                            app.dialog = Some(Dialog::RemoveAttr { attrs, selected: 0 });
-                        }
-                    }
-                    3 => {
-                        let attrs = collect_attribute_names(app);
-                        if attrs.is_empty() {
-                            app.dialog = Some(Dialog::Message {
-                                text: "No attributes found in any CityObject.".to_string(),
-                                is_error: true,
-                            });
-                        } else {
-                            app.dialog = Some(Dialog::RenamePick { attrs, selected: 0 });
-                        }
-                    }
-                    4 => {
-                        app.dialog = Some(Dialog::AddCsv {
-                            input: String::new(),
-                            cursor: 0,
-                        });
-                    }
-                    5 => {
-                        app.dialog = Some(Dialog::EpsgInput {
-                            input: String::new(),
-                            cursor: 0,
-                        });
-                    }
-                    6 => {
-                        let report = ops::roofer2multiroofs(&mut app.doc);
-                        app.modified = true;
-                        app.refresh_stats();
-                        app.dialog = Some(Dialog::Message {
-                            text: report.summary,
-                            is_error: report.is_error,
-                        });
-                    }
-                    7 => {
-                        let report = ops::validate_schema(&app.doc);
-                        let has_warnings = report.summary.contains("[warning]");
-                        app.dialog = Some(Dialog::Validation {
-                            text: report.summary,
-                            has_errors: report.is_error,
-                            has_warnings,
-                        });
-                    }
-                    8 => {
-                        let default = app.default_output_path();
-                        app.dialog = Some(Dialog::Save {
-                            input: default,
-                            cursor: 0,
-                            format: app.output_format,
-                        });
-                    }
-                    _ => {}
+            KeyCode::Enter => match app.selected_operation {
+                0 => {
+                    let report = ops::add_roof_area(&mut app.doc);
+                    app.modified = true;
+                    app.refresh_stats();
+                    app.dialog = Some(Dialog::Message {
+                        text: report.summary,
+                        is_error: report.is_error,
+                    });
                 }
-            }
+                1 => {
+                    let report = ops::add_volume(&mut app.doc);
+                    app.modified = true;
+                    app.refresh_stats();
+                    app.dialog = Some(Dialog::Message {
+                        text: report.summary,
+                        is_error: report.is_error,
+                    });
+                }
+                2 => {
+                    let attrs = collect_attribute_names(app);
+                    if attrs.is_empty() {
+                        app.dialog = Some(Dialog::Message {
+                            text: "No attributes found in any CityObject.".to_string(),
+                            is_error: true,
+                        });
+                    } else {
+                        app.dialog = Some(Dialog::RemoveAttr { attrs, selected: 0 });
+                    }
+                }
+                3 => {
+                    let attrs = collect_attribute_names(app);
+                    if attrs.is_empty() {
+                        app.dialog = Some(Dialog::Message {
+                            text: "No attributes found in any CityObject.".to_string(),
+                            is_error: true,
+                        });
+                    } else {
+                        app.dialog = Some(Dialog::RenamePick { attrs, selected: 0 });
+                    }
+                }
+                4 => {
+                    app.dialog = Some(Dialog::AddCsv {
+                        input: String::new(),
+                        cursor: 0,
+                    });
+                }
+                5 => {
+                    app.dialog = Some(Dialog::EpsgInput {
+                        input: String::new(),
+                        cursor: 0,
+                    });
+                }
+                6 => {
+                    let report = ops::roofer2multiroofs(&mut app.doc);
+                    app.modified = true;
+                    app.refresh_stats();
+                    app.dialog = Some(Dialog::Message {
+                        text: report.summary,
+                        is_error: report.is_error,
+                    });
+                }
+                7 => {
+                    let report = ops::validate_schema(&app.doc);
+                    let has_warnings = report.summary.contains("[warning]");
+                    app.dialog = Some(Dialog::Validation {
+                        text: report.summary,
+                        has_errors: report.is_error,
+                        has_warnings,
+                    });
+                }
+                8 => {
+                    let default = app.default_output_path();
+                    app.dialog = Some(Dialog::Save {
+                        input: default,
+                        cursor: 0,
+                        format: app.output_format,
+                    });
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -945,7 +944,8 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
         (Dialog::AddCsv { .. }, KeyCode::Backspace) => {
             if let Some(Dialog::AddCsv {
                 ref mut input,
-                ref mut cursor, ..
+                ref mut cursor,
+                ..
             }) = app.dialog
             {
                 if *cursor > 0 {
@@ -957,7 +957,8 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
         (Dialog::AddCsv { .. }, KeyCode::Delete) => {
             if let Some(Dialog::AddCsv {
                 ref mut input,
-                ref mut cursor, ..
+                ref mut cursor,
+                ..
             }) = app.dialog
             {
                 if *cursor < input.len() {
@@ -1177,10 +1178,7 @@ fn handle_dialog_key(app: &mut App, dialog: Dialog, key: event::KeyEvent) -> Res
             }
         }
         (Dialog::EpsgInput { .. }, KeyCode::Left) => {
-            if let Some(Dialog::EpsgInput {
-                ref mut cursor, ..
-            }) = app.dialog
-            {
+            if let Some(Dialog::EpsgInput { ref mut cursor, .. }) = app.dialog {
                 *cursor = cursor.saturating_sub(1);
             }
         }

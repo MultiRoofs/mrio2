@@ -81,8 +81,13 @@ pub fn compute_stats(doc: &CityJsonDocument) -> FileStats {
         if let Some(attrs) = obj.get("attributes").and_then(|v| v.as_object()) {
             objects_with_attrs += 1;
             for (key, val) in attrs {
-                attr_counts.entry(key.clone()).and_modify(|c| *c += 1).or_insert(1);
-                attr_samples.entry(key.clone()).or_insert_with(|| fmt_value(val));
+                attr_counts
+                    .entry(key.clone())
+                    .and_modify(|c| *c += 1)
+                    .or_insert(1);
+                attr_samples
+                    .entry(key.clone())
+                    .or_insert_with(|| fmt_value(val));
             }
         }
     }

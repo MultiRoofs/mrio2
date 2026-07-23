@@ -1,11 +1,10 @@
-use std::collections::{HashMap, HashSet};
 use serde_json::{Map, Number, Value};
+use std::collections::{HashMap, HashSet};
 
 use crate::model::*;
 
 pub fn parse_cityjson(content: &str) -> Result<CityJsonDocument, String> {
-    let value: Value =
-        serde_json::from_str(content).map_err(|e| format!("Invalid JSON: {}", e))?;
+    let value: Value = serde_json::from_str(content).map_err(|e| format!("Invalid JSON: {}", e))?;
     let header = value
         .as_object()
         .ok_or_else(|| "Root is not a JSON object".to_string())?
@@ -19,16 +18,14 @@ pub fn parse_cityjson(content: &str) -> Result<CityJsonDocument, String> {
 
 pub fn parse_cityjsonseq(content: &str) -> Result<CityJsonDocument, String> {
     let mut lines = content.lines().filter(|l| !l.trim().is_empty());
-    let first = lines
-        .next()
-        .ok_or_else(|| "Empty file".to_string())?;
-    let header: Map<String, Value> = serde_json::from_str(first)
-        .map_err(|e| format!("Invalid JSON in header: {}", e))?;
+    let first = lines.next().ok_or_else(|| "Empty file".to_string())?;
+    let header: Map<String, Value> =
+        serde_json::from_str(first).map_err(|e| format!("Invalid JSON in header: {}", e))?;
 
     let mut features = Vec::new();
     for line in lines {
-        let feature: Map<String, Value> = serde_json::from_str(line)
-            .map_err(|e| format!("Invalid JSON in feature: {}", e))?;
+        let feature: Map<String, Value> =
+            serde_json::from_str(line).map_err(|e| format!("Invalid JSON in feature: {}", e))?;
         features.push(feature);
     }
 
@@ -57,8 +54,8 @@ pub fn serialize(doc: &CityJsonDocument, format: OutputFormat) -> Result<String,
 #[cfg(not(target_arch = "wasm32"))]
 pub fn read_file(path: &str) -> Result<CityJsonDocument, String> {
     let input_format = InputFormat::from_path(path);
-    let content = std::fs::read_to_string(path)
-        .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
+    let content =
+        std::fs::read_to_string(path).map_err(|e| format!("Failed to read '{}': {}", path, e))?;
 
     match input_format {
         InputFormat::CityJSON => parse_cityjson(&content),
@@ -75,8 +72,7 @@ pub fn write_file(path: &str, doc: &CityJsonDocument, format: OutputFormat) -> R
 
 fn serialize_cityjson(doc: &CityJsonDocument) -> Result<String, String> {
     let merged = collapse(doc);
-    serde_json::to_string_pretty(&merged)
-        .map_err(|e| format!("Serialization error: {}", e))
+    serde_json::to_string_pretty(&merged).map_err(|e| format!("Serialization error: {}", e))
 }
 
 fn serialize_cityjsonseq(doc: &CityJsonDocument) -> Result<String, String> {
@@ -85,8 +81,7 @@ fn serialize_cityjsonseq(doc: &CityJsonDocument) -> Result<String, String> {
         serde_json::to_string(&header).map_err(|e| format!("Serialization error: {}", e))?;
     let mut lines = vec![header_line];
     for f in features {
-        let line =
-            serde_json::to_string(&f).map_err(|e| format!("Serialization error: {}", e))?;
+        let line = serde_json::to_string(&f).map_err(|e| format!("Serialization error: {}", e))?;
         lines.push(line);
     }
     Ok(lines.join("\n"))
@@ -198,9 +193,7 @@ pub fn expand(doc: &CityJsonDocument) -> (Value, Vec<Value>) {
 }
 
 fn remap_geometry_vertices(obj: &mut Value, offset: usize) {
-    let geometries = obj
-        .get_mut("geometry")
-        .and_then(|v| v.as_array_mut());
+    let geometries = obj.get_mut("geometry").and_then(|v| v.as_array_mut());
     if let Some(geoms) = geometries {
         for geom in geoms {
             let geom_type = geom
@@ -216,9 +209,7 @@ fn remap_geometry_vertices(obj: &mut Value, offset: usize) {
 }
 
 fn remap_geometry_vertices_with_map(obj: &mut Value, remap: &HashMap<usize, usize>) {
-    let geometries = obj
-        .get_mut("geometry")
-        .and_then(|v| v.as_array_mut());
+    let geometries = obj.get_mut("geometry").and_then(|v| v.as_array_mut());
     if let Some(geoms) = geometries {
         for geom in geoms {
             let geom_type = geom
@@ -406,15 +397,10 @@ fn remap_vertex_array(val: &mut Value, remap: &HashMap<usize, usize>) {
 
 fn collect_vertex_indices(obj: &Value) -> HashSet<usize> {
     let mut indices = HashSet::new();
-    let geometries = obj
-        .get("geometry")
-        .and_then(|v| v.as_array());
+    let geometries = obj.get("geometry").and_then(|v| v.as_array());
     if let Some(geoms) = geometries {
         for geom in geoms {
-            let geom_type = geom
-                .get("type")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+            let geom_type = geom.get("type").and_then(|v| v.as_str()).unwrap_or("");
             let boundaries = geom.get("boundaries");
             if let Some(b) = boundaries {
                 collect_from_boundaries(b, geom_type, &mut indices);
@@ -497,16 +483,10 @@ fn collect_ints_from_array(val: &Value, indices: &mut HashSet<usize>) {
     }
 }
 
-pub fn get_all_city_objects(
-    doc: &CityJsonDocument,
-) -> Vec<(String, Value)> {
+pub fn get_all_city_objects(doc: &CityJsonDocument) -> Vec<(String, Value)> {
     let mut objects = Vec::new();
 
-    if let Some(objs) = doc
-        .header
-        .get("CityObjects")
-        .and_then(|v| v.as_object())
-    {
+    if let Some(objs) = doc.header.get("CityObjects").and_then(|v| v.as_object()) {
         for (k, v) in objs {
             objects.push((k.clone(), v.clone()));
         }
@@ -523,9 +503,7 @@ pub fn get_all_city_objects(
     objects
 }
 
-pub fn get_all_city_objects_mut(
-    doc: &mut CityJsonDocument,
-) -> Vec<(String, &mut Value)> {
+pub fn get_all_city_objects_mut(doc: &mut CityJsonDocument) -> Vec<(String, &mut Value)> {
     let mut objects = Vec::new();
 
     if let Some(objs) = doc
@@ -539,7 +517,10 @@ pub fn get_all_city_objects_mut(
     }
 
     for feature in &mut doc.features {
-        if let Some(objs) = feature.get_mut("CityObjects").and_then(|v| v.as_object_mut()) {
+        if let Some(objs) = feature
+            .get_mut("CityObjects")
+            .and_then(|v| v.as_object_mut())
+        {
             for (k, v) in objs.iter_mut() {
                 objects.push((k.clone(), v));
             }
@@ -590,10 +571,7 @@ mod tests {
         let doc = read_file("../../data/3dbag_b2.city.jsonl").unwrap();
         let collapsed = collapse(&doc);
         let obj = collapsed.as_object().unwrap();
-        assert_eq!(
-            obj.get("type").and_then(|v| v.as_str()),
-            Some("CityJSON")
-        );
+        assert_eq!(obj.get("type").and_then(|v| v.as_str()), Some("CityJSON"));
         let objects = obj.get("CityObjects").and_then(|v| v.as_object());
         assert!(objects.is_some());
         assert!(!objects.unwrap().is_empty());
