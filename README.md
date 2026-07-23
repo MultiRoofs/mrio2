@@ -26,6 +26,8 @@ cargo run -p mrio-cli -- data/3dbag_b2.city.jsonl --output-format cityjson   # f
 
 ### Web application
 
+![](./misc/gui.png)
+
 Requires [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) for building the WebAssembly module.
 
 ```sh
