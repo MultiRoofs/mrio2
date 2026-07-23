@@ -321,7 +321,7 @@ pub fn roofer2multiroofs(doc: &mut CityJsonDocument) -> OpReport {
     let ext_name = "multiroofs";
     let ext_value = serde_json::json!({
         "url": "https://raw.githubusercontent.com/MultiRoofs/cityjson-extension/refs/heads/main/multiroofs.ext.json",
-        "version": "0.1.0"
+        "version": "0.2.0"
     });
 
     if let Some(exts) = doc.header.get_mut("extensions").and_then(|v| v.as_object_mut()) {
