@@ -1,5 +1,5 @@
-id;colour;yoc
-5;blue;1999
-10;red;1952
-11;red;2001
-12;orange;2004
+id;building-has-elevator;building-year-construction
+5;true;1999
+10;false;1952
+11;false;2001
+12;true;2004
